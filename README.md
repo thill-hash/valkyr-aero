@@ -20,6 +20,11 @@ Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password,
 
 The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are no setup fees, and billing is month-to-month. Competitor line: $7,000–$20,700/yr for 3 aircraft.
 
+## Print
+- Every screen has a print icon in the top bar (or use Ctrl/Cmd+P). Printing uses white paper and black text, hides navigation, buttons, banners and demo tools, and prints full lists (no pagination or scroll truncation) with repeating table headers.
+- Each page gets a header (Hill Systems logo, Valkyr360, page and section, operator, tail where relevant, print date) and page numbers in the footer. Aircraft › Due list prints as a maintenance status report; Aircraft › Logbook prints as a logbook export.
+- Tests write PDFs of key pages to `screenshots/print/`.
+
 ## Admin console (DEMO)
 - The admin sign-in is at **`/admin/`**.
 - Credentials are held privately by Hill Systems.
@@ -38,6 +43,7 @@ The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are n
 - `brand/` — Hill Systems logos, `og-image.png` (1200×630 link preview; Open Graph + Twitter card meta in `index.html`), `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (180×180)
 - `vendor/fflate.min.js` (MIT)
 - `samples/` — DEMO avionics files, CSVs, `demo-sd-card.zip`, and `faa-update-SIMULATED-2026-10-23.json`. Regenerate with `node tools/make_samples.js` and `node tools/make_faa_update.js`.
+- `terms.html` (Terms of Service, version 2026-10-23; also `/terms/`), `privacy.html` (placeholder; also `/privacy/`), `print.js` (print support)
 - `admin.js` — platform admin console (DEMO); `admin/` — admin sign-in page; `staff.js` — staff accounts (salt + hash only)
 - `test/app.test.js` — headless end-to-end tests, perf numbers and screenshots. Results go to `test/perf-results.json`.
 - `ARCHITECTURE.md` — production design, data sources and citations, format matrix, FAA/AD sync, and the cost estimate.

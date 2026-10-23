@@ -73,6 +73,7 @@ const ACT={
 const auditTable=(rows,id)=>rows.length?`<div class="tbl"><div class="tbl-scroll"><table class="bill-t" id="${id}"><thead><tr><th>When</th><th>Admin</th><th>Operator</th><th>Action</th><th>Detail</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="small">${esc(r.at.slice(0,16).replace('T',' '))}</td><td class="small">${esc(r.admin)}</td><td>${esc(r.opName)}</td><td><b>${esc(r.action)}</b></td><td class="small">${esc(r.detail||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<div class="empty small">No actions yet.</div>';
 VA.views.admin=function(el,args){
   if(!isAdmin()){location.hash='#/'+VA.home();return {title:'Admin'}}
+  if(VA.printAll&&VA.adminOps){const ops=VA.adminOps;(args&&args[0]==='op')?detail(el,ops,decodeURIComponent(args[1]||'')):list(el,ops);return {title:args&&args[0]==='op'?'Admin · Operator':'Admin'}}
   el.innerHTML='<div class="spinner"></div>';const my=VA.adminSeq=(VA.adminSeq||0)+1;
   load().then(ops=>{if(my!==VA.adminSeq||!document.contains(el))return;(args&&args[0]==='op')?detail(el,ops,decodeURIComponent(args[1]||'')):list(el,ops)});
   return {title:args&&args[0]==='op'?'Admin · Operator':'Admin'};

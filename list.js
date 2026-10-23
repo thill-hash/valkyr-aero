@@ -20,7 +20,7 @@ VA.list=function(host,cfg){
   async function draw(){
     const my=++seq,t0=performance.now();let rows,total;
     if(cfg.fetch){body.setAttribute('aria-busy','true');const slow=setTimeout(()=>{if(my===seq)body.classList.add('lc-loading')},150);let r;
-      try{r=await cfg.fetch({q:st.q.trim(),f:st.f,sort:st.sort,offset:st.page*st.size,limit:st.size})}
+      try{r=await cfg.fetch({q:st.q.trim(),f:st.f,sort:st.sort,offset:VA.printAll?0:st.page*st.size,limit:VA.printAll?1e9:st.size})}
       catch(err){clearTimeout(slow);if(my!==seq)return;body.removeAttribute('aria-busy');body.classList.remove('lc-loading');console.warn(err);
         body.innerHTML=`<div class="empty" role="alert"><b>Couldn't load this list.</b> ${esc(err&&err.message||'Storage error')} <button class="btn sm" data-lc="retry">Try again</button></div>`;$('[data-lc=retry]',body).onclick=()=>draw();return}
       clearTimeout(slow);if(my!==seq)return;body.removeAttribute('aria-busy');body.classList.remove('lc-loading');
@@ -32,7 +32,7 @@ VA.list=function(host,cfg){
       (cfg.filters||[]).forEach(f=>{const v=st.f[f.id];if(v!==''&&v!=null)a=a.filter(r=>f.test(r,v))});
       const so=cfg.sorts&&cfg.sorts.find(s=>s[0]===st.sort);if(so)a=a.slice().sort(so[2]);
       total=a.length;const pages=Math.max(1,Math.ceil(total/st.size));if(st.page>=pages)st.page=pages-1;
-      rows=a.slice(st.page*st.size,st.page*st.size+st.size);
+      rows=VA.printAll?a:a.slice(st.page*st.size,st.page*st.size+st.size);
     }
     const pages=Math.max(1,Math.ceil(total/st.size));
     const filtered=!!st.q.trim()||(cfg.filters||[]).some(f=>(st.f[f.id]||'')!==(f.def!=null?f.def:''));

@@ -397,6 +397,10 @@ type BillingEvent =
   - **Subscription layers over a gateway (proration, dunning and invoicing out of the box):** Chargebee, Recurly.
   - Recommendation for v1: a merchant of record, because tax and fewer moving parts matter more for owner-operators and flight departments. Keep the adapter so a later move to a gateway plus tax engine doesn't reach the domain model.
 
+**Checkout consent (prototype).** Next to the price and "Renews monthly until canceled", an unchecked, required "I agree to the Terms and Privacy" box blocks checkout. Each acceptance is stored per account (`localStorage va.consent`: timestamp, terms version `2026-10-23`, the exact text and amounts shown). Production: an append-only `consents(org_id, user_id, at, terms_version, shown_json, ip, user_agent)` table, kept at least 3 years; a new terms version requires re-acceptance.
+
+**Mid-period changes.** Adding or upgrading an aircraft in a paid period is charged prorated; removing or downgrading credits the prorated unused amount to the next invoice; nothing is prorated during the trial. Terms §7.4 states the same.
+
 **Cancel (prototype).** Owners cancel in Settings › Subscription. Access continues to the period end, then the account is read-only and exportable until resubscribed. Server-side: `subscriptions.cancel_at_period_end`, enforced by the API, not the UI.
 
 ## 17. Platform admin console

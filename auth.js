@@ -89,6 +89,7 @@ function shell(inner){return `<div class="auth-wrap"><section class="auth-card" 
     <div class="by-hs">by <img src="brand/hill-systems-logo-sm.png" alt="Hill Systems" height="16"></div>
     ${inner}
     <p class="auth-note">Demo: accounts are stored only in this browser.</p>
+    <p class="auth-legal"><a href="terms.html" id="authTerms">Terms</a> · <a href="privacy.html">Privacy</a></p>
   </section></div>`}
 A.WIRE={};A.busy=(...a)=>busy(...a);A.bad=(...a)=>bad(...a);
 const field=A.field=(name,label,type='text',extra='')=>`<label class="f">${label}<input name="${name}" type="${type}" ${extra}></label>`;

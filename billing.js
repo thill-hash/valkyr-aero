@@ -4,7 +4,7 @@
    from both with a proration note. No card data is collected. Production: ARCHITECTURE.md §16. */
 (function(){
 const {$,$$,esc}=VA;const A=VA.auth;
-const CONFIG=VA.BILLING_CONFIG={trialDays:14,currency:'USD',invoicePrefix:'VA-DEMO-'}; /* placeholders */
+const CONFIG=VA.BILLING_CONFIG={trialDays:14,currency:'USD',invoicePrefix:'VA-DEMO-',termsVersion:'2026-10-23'}; /* placeholders */
 const KEY='va.billing';
 const tiers=()=>VA.TIERS;
 const tierOf=id=>tiers().find(t=>t.id===id)||tiers().find(t=>t.id==='single');
@@ -161,10 +161,16 @@ A.VIEWS.checkout=()=>{const d=A.draft||{items:[]};const tot=d.items.reduce((t,i)
     <h1 id="authH">Confirm</h1>
     <dl class="sim-kv"><dt>Account</dt><dd>${esc(d.email||'')}</dd><dt>Organization</dt><dd>${esc(d.org||'')}</dd><dt>Aircraft</dt><dd>${d.items.length}</dd>
     <dt>Monthly</dt><dd><b>${money0(tot)}</b> from ${fmtDate(addD(today(),CONFIG.trialDays))}</dd><dt>Today</dt><dd><b>$0.00</b></dd></dl>
+    <div class="consent" id="suConsent"><p id="suRenew"><b>${money0(tot)}/mo</b> after the ${CONFIG.trialDays}-day free trial. Renews monthly until canceled. Cancel anytime in Settings.</p>
+      <label class="auth-check"><input type="checkbox" id="suAgree" required aria-describedby="suRenew"> <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></span></label>
+      <div class="auth-err" id="suAgreeErr" role="alert" hidden>Agree to the Terms to continue.</div></div>
     <div class="row auth-nav">${back}<span class="spacer"></span><button class="btn primary" type="button" id="suConfirm">Confirm</button></div>`)};
 A.WIRE.checkout=el=>{if(!A.draft||!A.draft.items||!A.draft.items.length)return A.show('aircraft');$('#suBack',el).onclick=()=>A.show('plan');
-  $('#suConfirm',el).onclick=async()=>{const b=$('#suConfirm',el);A.busy(b,true,'Confirming');const d=A.draft;
+  const agree=$('#suAgree',el),aErr=$('#suAgreeErr',el);agree.onchange=()=>{aErr.hidden=true;agree.removeAttribute('aria-invalid')};
+  $('#suConfirm',el).onclick=async()=>{if(!agree.checked){aErr.hidden=false;agree.setAttribute('aria-invalid','true');agree.focus();return}
+    const b=$('#suConfirm',el);A.busy(b,true,'Confirming');const d=A.draft;const tot=d.items.reduce((t,i)=>t+tierOf(i.tier).price,0);
     const r=await A.create(d);if(!r.ok){A.busy(b,false);A.show('create');return setTimeout(()=>A.bad($('#createForm'),r.field,r.msg),50)}
+    B.recordConsent(r.account,{monthly:tot,aircraft:d.items.length,trialDays:CONFIG.trialDays,firstCharge:addD(today(),CONFIG.trialDays),text:$('#suRenew',el).textContent+' I agree to the Terms and Privacy.'});
     const sub=B.start(r.account.id,d.items);A.draft={done:true,account:r.account,sub,org:d.org,n:d.items.length,tot:d.items.reduce((t,i)=>t+tierOf(i.tier).price,0)};A.show('done')}};
 A.VIEWS.done=()=>{const d=A.draft||{};const sub=d.sub||{checkout:{}};
   return shell(`<div class="auth-sent"><div class="auth-sent-ic" aria-hidden="true">✓</div><h1 id="authH">Subscription active</h1>
@@ -216,7 +222,7 @@ VA.views.settings=function(el,args){const r=set0(el,args)||{};const sub=VA.state
       :sub.status==='canceling'?`<button class="btn" id="sResume">Keep subscription</button>`
       :sub.status==='suspended'?`<button class="btn" data-ro-ok id="sExport">Export data</button>`
       :`<button class="btn" data-ro-ok id="sExport">Export data</button><button class="btn primary" data-ro-ok id="sResub">Resubscribe</button>`;
-    el.insertAdjacentHTML('afterbegin',`<section class="card sub-card" id="subCard" style="margin-bottom:18px"><h2>Subscription</h2><div class="row"><span id="subStatus" class="${sub.status==='active'?'ok-t':sub.status==='canceling'?'warn-t':'bad-t'}">${line}</span><span class="spacer"></span><a href="#/billing" class="small">Billing</a>${btns}</div></section>`);
+    el.insertAdjacentHTML('afterbegin',`<section class="card sub-card" id="subCard" style="margin-bottom:18px"><h2>Subscription</h2><div class="row"><span id="subStatus" class="${sub.status==='active'?'ok-t':sub.status==='canceling'?'warn-t':'bad-t'}">${line}</span><span class="spacer"></span><a href="#/billing" class="small">Billing</a> <a href="terms.html" class="small" id="subTerms">Terms</a>${btns}</div></section>`);
     const on=(id,f)=>{const b=$('#'+id,el);if(b)b.onclick=f};
     on('sCancel',()=>VA.modal('Cancel subscription?',`<p style="margin-top:0">Ends ${fmtDate(c.next)}. Full access until then, then read-only and exportable. No further charges.</p>`,
       `<button class="btn" data-close>Keep subscription</button><button class="btn danger" id="cancelGo">Cancel subscription</button>`,m=>{$('#cancelGo',m.parentElement).onclick=()=>{sub.status='canceling';sub.cancelAt=c.next;sub.canceledOn=today();B.save(sub);VA.closeModal();VA.toast(`Subscription ends ${fmtDate(c.next)}`,'ok');VA.route()}}));
@@ -245,4 +251,11 @@ VA.views.aircraft=function(el,parts){const r=ac0(el,parts);const a=VA.state().ai
         for(const f of fs){const id=VA.uid('d');S.docs.push({id,ac:a.id,name:f.name,kind:'Uploaded',exp:null,size:f.size,uploaded:today()});try{await DAL.putKV('doc:'+id,f)}catch(err){}}
         VA.save();VA.toast(`${fs.length} document${fs.length>1?'s':''} added`,'ok');VA.route()}}}
   return r};
+})();
+
+/* Consent records (DEMO: localStorage va.consent, one list per account). Production: server-side, kept ≥ 3 years (ARCHITECTURE §16). */
+(function(){const B=VA.billing;const K='va.consent';
+  const all=()=>{try{return JSON.parse(localStorage.getItem(K)||'{}')}catch(e){return {}}};
+  B.recordConsent=function(acct,shown){const m=all();(m[acct.id]=m[acct.id]||[]).push({uid:acct.id,email:acct.email,at:new Date().toISOString(),termsVersion:VA.BILLING_CONFIG.termsVersion,privacy:'placeholder',autoRenew:'monthly',shown});localStorage.setItem(K,JSON.stringify(m));return m[acct.id].slice(-1)[0]};
+  B.consents=uid=>all()[uid]||[];
 })();
