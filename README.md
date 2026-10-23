@@ -21,8 +21,8 @@ Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password,
 The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are no setup fees, and billing is month-to-month. Competitor line: $7,000–$20,700/yr for 3 aircraft.
 
 ## Admin console (DEMO)
-- Separate sign-in at **`/admin/`** (https://valkyr360.com/admin/; locally `admin/index.html`). The customer sign-in has no admin entry point.
-- Demo admin: **admin@hillsystems.demo** / **HillAdmin-demo1** (or "Fill demo admin" on the admin page). Role `platform`, separate from operator roles; stored as salt + PBKDF2 hash in `staff.js`.
+- The admin sign-in is at **`/admin/`**.
+- Credentials are held privately by Hill Systems.
 - Platform accounts sign in only at `/admin/`; operator accounts are rejected there, and the customer sign-in rejects platform accounts. The admin session (`va.admin.session`, 8 h) is separate from the operator session (`va.session`). Signing out of admin returns to `/admin/`; opening `#/admin` without an admin session goes there too. Admins see only `#/admin`.
 - Operator list: search, status filter, sort, paginated, no row cap. Columns: operator, owner email, status (trial, active, past due, canceled, suspended), aircraft by tier, monthly total, signup, last active. Totals: operators, aircraft, MRR (active + past due), trials.
 - Data: the demo operator, every account created in this browser (its own IndexedDB fleet), and 9 seeded operators labelled (DEMO).
@@ -38,11 +38,12 @@ The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are n
 - `brand/` — Hill Systems logos, `og-image.png` (1200×630 link preview; Open Graph + Twitter card meta in `index.html`), `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (180×180)
 - `vendor/fflate.min.js` (MIT)
 - `samples/` — DEMO avionics files, CSVs, `demo-sd-card.zip`, and `faa-update-SIMULATED-2026-10-23.json`. Regenerate with `node tools/make_samples.js` and `node tools/make_faa_update.js`.
-- `admin.js` — platform admin console (DEMO); `admin/` — admin sign-in page; `staff.js` — DEMO staff accounts
+- `admin.js` — platform admin console (DEMO); `admin/` — admin sign-in page; `staff.js` — staff accounts (salt + hash only)
 - `test/app.test.js` — headless end-to-end tests, perf numbers and screenshots. Results go to `test/perf-results.json`.
 - `ARCHITECTURE.md` — production design, data sources and citations, format matrix, FAA/AD sync, and the cost estimate.
 
 ## Run tests
+Admin tests read the admin password from env `VALKYR_ADMIN_PASSWORD` (never from source).
 ```
 mkdir -p /tmp/vtest && cd /tmp/vtest && npm i puppeteer-core fflate
 cp /path/to/valkyr-aero/test/app.test.js . && node app.test.js     # uses /usr/bin/google-chrome

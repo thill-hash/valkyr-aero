@@ -2,12 +2,10 @@
 (function(){
 const S=window.VA_STAFF,f=document.getElementById('adminForm'),err=document.getElementById('adminErr'),btn=document.getElementById('adminBtn');
 const CONSOLE=location.protocol==='file:'?'../index.html#/admin':'../#/admin';
-const DEMO={email:'admin@hillsystems.demo',password:'HillAdmin-demo1'};
 if(S.session()){location.replace(CONSOLE);return}
 const opAccount=e=>{try{return JSON.parse(localStorage.getItem('va.accounts')||'[]').some(a=>a.email===e)}catch(x){return false}};
 const fail=(msg,field)=>{err.textContent=msg;err.hidden=false;if(field){f[field].setAttribute('aria-invalid','true');f[field].focus()}};
 f.oninput=e=>{e.target.removeAttribute('aria-invalid')};
-document.getElementById('adminFill').onclick=()=>{f.email.value=DEMO.email;f.password.value=DEMO.password;err.hidden=true;btn.focus()};
 f.onsubmit=async e=>{e.preventDefault();err.hidden=true;
   const email=f.email.value.trim().toLowerCase(),pw=f.password.value;
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail('Enter your email.','email');
