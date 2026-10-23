@@ -270,3 +270,120 @@ One-time onboarding OCR of historical logbooks (~10,000 pages/aircraft × $1.50/
 **Pipeline:** nightly ingest → parse AD number, status (new / revised / superseding with `supersedes`), effective date, applicability (product type: aircraft / engine / propeller / appliance; make, models, serial ranges, part numbers) → normalized `ad` + `ad_applicability` tables → match against each aircraft's FAA make/model + serial, installed engines, propellers and appliances (component table) → create **“New AD applicability — review”** items (or “Revised / Superseding AD — review”) assigned to the IA/DOM. Matching is deliberately broad (false positives are cheaper than misses); the IA records applicability and method of compliance. **Compliance is never auto-marked**; superseded AD items are left as-is until the IA closes them.
 
 Prototype: the SIMULATED delta carries five fictitious ADs (airframe + serial range, engine, revised/superseding, appliance, and one that matches nothing). Review items are non-grounding until the IA decides.
+
+## 15. Authentication & access control
+
+**What the prototype does (DEMO only).** `auth.js` shows a sign-in screen whenever there's no session, and keeps the requested deep link so it can return there after sign-in. Accounts live only in this browser's `localStorage` (`va.accounts`). The password is never stored. Each account keeps a random 16-byte salt and a PBKDF2-HMAC-SHA-256 hash (150,000 iterations, WebCrypto). The session (`va.session`) holds no secrets. It goes in `localStorage` with "Remember me" and in `sessionStorage` without it. "Forgot password" only shows a confirmation, and nothing is sent. None of this is security: anyone with this browser profile can read or edit it, and the static site has no server to enforce anything. The role switcher ("View as") is a demo convenience.
+
+**Production design**
+- **Server-side auth only.** The browser never decides who someone is. A managed or self-hosted identity service (e.g. Auth0, AWS Cognito, Keycloak, Ory, or our own) issues sessions, and the API checks them on every request.
+- **Sessions.** Short-lived access tokens plus rotating refresh tokens, or a server session in an `HttpOnly; Secure; SameSite=Lax` cookie. Never tokens in `localStorage`. Add CSRF protection for cookie sessions, revoke on sign-out and on password change, and offer "sign out all devices".
+- **Passwords.**
+  - Hash with Argon2id (or bcrypt or scrypt, with per-user salt and tuned cost) on the server.
+  - Enforce a minimum length and check against known-breached password lists.
+  - Rate-limit and lock out per account and per IP.
+  - Error messages never reveal whether an email exists.
+- **Password reset.**
+  - Single-use, hashed, 30-minute token sent by email; old sessions are revoked once the reset completes.
+  - **Email verification** is required before billing goes live.
+- **MFA.**
+  - TOTP and WebAuthn/passkeys, with recovery codes.
+  - Required for owners and for anyone who can sign off maintenance (return to service under 14 CFR 43.9/91.417 needs a strongly authenticated signer).
+  - Optional for pilots.
+- **SSO** for larger operators: SAML/OIDC per organization, configured by the owner. No consumer social logins in v1.
+- **Tenancy.** Every row carries `org_id` (see §6), and Postgres row-level security keys off the session's org. Users can belong to several orgs through `memberships(user_id, org_id, role)`. The API resolves the active org on every request.
+- **Roles (RBAC), enforced in the API, not the UI:**
+
+| Role | Access |
+|---|---|
+| owner | Everything, plus billing, members and data sources |
+| pilot | Schedule, log flights, squawks, read-only aircraft status |
+| mechanic | Maintenance, squawks, sign-offs (IA flag for annuals/ADs), data sources |
+| viewer | Optional, read-only |
+
+  - The nav only hides what the API would refuse anyway.
+  - Sign-offs record the authenticated user ID, certificate number and timestamp in the append-only log (§8).
+- **Audit.** Sign-in, MFA, role, membership, billing and sign-off events go to an immutable audit log.
+
+## 16. Billing (processor-neutral)
+
+**What the prototype does (DEMO only).**
+- Sign-up runs: account → aircraft → plan → checkout → app.
+  - Each N-number is looked up in the bundled FAA data, and `types.classify` picks the tier. Tails not in the file get a manual tier picker.
+  - The plan summary lists each aircraft, its tier, the monthly price and total, plus a free-trial line. The trial length is `VA.BILLING_CONFIG.trialDays = 14`, a placeholder.
+  - "Continue to secure checkout" shows a labeled simulated confirmation ("Demo checkout: no card is charged"). No card fields are rendered or collected, and no payment brand is shown.
+- The Billing page (owner only, in the account menu) shows:
+  - plan per aircraft and the monthly total
+  - next invoice date
+  - demo invoice history
+  - a simulated "Update payment method"
+  - add/remove aircraft with proration
+- Subscription and invoice records live in `localStorage` (`va.billing`).
+
+**Tiers (per aircraft per month):**
+
+| Tier | Price |
+|---|---|
+| Single | $29 |
+| Light twin | $49 |
+| Piston helicopter | $49 |
+| Heavy piston twin | $149 |
+| Turbine helicopter | $149 |
+| Turboprop | $249 |
+| Light jet | $299 |
+| Midsize/heavy jet | $399 |
+| Experimental & warbirds | $29 |
+
+**Source of truth is our database, not the processor.**
+```
+billing_customers(org_id, provider, provider_customer_id, tax_country, tax_region, tax_exempt_cert_id)
+subscriptions(id, org_id, status[trialing|active|past_due|grace|canceled], trial_ends_at, current_period_start, current_period_end,
+              anchor_day, provider, provider_subscription_id, cancel_at_period_end)
+subscription_items(id, subscription_id, aircraft_id, tier, unit_price_cents, quantity, added_at, removed_at)   -- one row per aircraft
+invoices(id, org_id, number, period_start, period_end, subtotal_cents, tax_cents, total_cents, status[draft|open|paid|failed|void],
+         provider_invoice_id, hosted_url, pdf_object_key)
+invoice_lines(invoice_id, kind[recurring|proration|credit|tax], description, aircraft_id, amount_cents)
+billing_events(id, provider, provider_event_id UNIQUE, type, payload_json, received_at, processed_at)        -- idempotent webhook log
+```
+- The tier comes from our classifier (pinned per aircraft, §11), never from the processor. Prices are versioned (`price_book`), so a price change only affects new periods.
+- Line items are per tier with quantities (e.g. `turboprop × 2`, `single × 1`), plus our own per-aircraft breakdown on the invoice.
+
+**Adapter interface.** Each provider is one module, and nothing else in the codebase imports a provider SDK.
+```ts
+interface BillingAdapter {
+  createCustomer(org: Org, contact: BillingContact): Promise<{ providerCustomerId: string }>;
+  startCheckout(input: { customerId: string; items: TierLine[]; trialDays: number; successUrl: string; cancelUrl: string })
+    : Promise<{ hostedUrl: string; sessionId: string }>;          // hosted payment page: card data never touches our servers (PCI SAQ-A)
+  createSubscription(input: { customerId: string; items: TierLine[]; trialEndsAt?: Date; anchorDay?: number })
+    : Promise<{ providerSubscriptionId: string }>;                 // TierLine = { tier, unitPriceCents, quantity }
+  updateQuantity(subId: string, tier: Tier, quantity: number, opts: { prorate: true; effective: 'now' | 'period_end' })
+    : Promise<{ prorationCents: number }>;
+  updatePaymentMethod(customerId: string, returnUrl: string): Promise<{ hostedUrl: string }>;
+  cancel(subId: string, opts: { atPeriodEnd: boolean }): Promise<void>;
+  parseWebhook(rawBody: Buffer, headers: Record<string, string>): BillingEvent;   // verify signature, normalize
+}
+type BillingEvent =
+  | { type: 'invoice.paid'; providerInvoiceId: string; amountCents: number; periodEnd: Date }
+  | { type: 'invoice.payment_failed'; providerInvoiceId: string; attempt: number; nextRetryAt?: Date }
+  | { type: 'subscription.canceled'; providerSubscriptionId: string; at: Date }
+  | { type: 'subscription.updated'; providerSubscriptionId: string };
+```
+- **Webhook handler.**
+  - Verify the signature, then insert into `billing_events` with a unique `provider_event_id`, so duplicates are no-ops.
+  - Handle events on a queue, in order per subscription. Update `subscriptions` and `invoices`, and never trust client redirects.
+  - `paid` → status active, store invoice and PDF. `failed` → start dunning. `canceled` → set status canceled at period end.
+- **Proration.** Adding or removing an aircraft calls `updateQuantity(..., prorate)`. Our own math: tier price × days left in the period ÷ days in the period, charged or credited on the next invoice. It is shown before confirming and must match the provider's number within one cent, or we alert. No proration during the trial.
+- **Dunning and grace period.**
+  - Retries on days 1, 3, 5 and 7, with an email at each step plus an in-app banner for owners.
+  - After the last retry: `grace` for 7 days, all features still on.
+  - Then `past_due`: read-only. Logging and maintenance records stay readable and exportable, because records required by 91.417 are never held hostage.
+  - Cancel at 30 days. Data is kept 90 days, then deleted after an export offer.
+- **Sales tax.** SaaS is taxable in some US states (e.g. TX, NY, PA, WA, CT, OH, at varying rates and rules). Options:
+  - **(a)** A merchant of record collects and remits everything and is the seller on the receipt.
+  - **(b)** A gateway plus a tax engine (e.g. Avalara, TaxJar, Anrok, Numeral), computed from the billing address, with exemption certificates stored on `billing_customers`. Register where economic nexus is reached.
+  - Tax is a separate invoice line.
+- **Candidate providers** (any one plugs in behind the adapter):
+  - **Merchant of record (handles global sales tax/VAT, fastest to launch):** Paddle, Lemon Squeezy.
+  - **Gateways (we own the subscription logic and tax engine):** Braintree, Square, Authorize.net, Helcim.
+  - **Subscription layers over a gateway (proration, dunning and invoicing out of the box):** Chargebee, Recurly.
+  - Recommendation for v1: a merchant of record, because tax and fewer moving parts matter more for 1–5-aircraft customers. Keep the adapter so a later move to a gateway plus tax engine doesn't reach the domain model.

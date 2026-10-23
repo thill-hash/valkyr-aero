@@ -220,7 +220,8 @@ const NAV=[
   {h:'settings',label:'Data sources',icon:'sync',roles:['owner','mechanic']},
   {h:'plans',label:'Plans',icon:'card',roles:['owner']}
 ];
-VA.canSee=h=>{const n=NAV.find(x=>x.h===h);return !n||n.roles.includes(S.role)};
+const EXTRA=[{h:'billing',roles:['owner']}]; /* routes reached from the account menu, not the nav */
+VA.canSee=h=>{const n=NAV.find(x=>x.h===h)||EXTRA.find(x=>x.h===h);return !n||n.roles.includes(S.role)};
 function renderChrome(cur){
   const open=S.squawks.filter(q=>q.status==='open').length;
   const items=NAV.filter(n=>n.roles.includes(S.role));
@@ -229,10 +230,11 @@ function renderChrome(cur){
   const prim=items.slice(0,4),more=items.slice(4);const inMore=more.some(n=>n.h===cur);
   $('#tabbar').innerHTML=prim.map(n=>link(n,1)).join('')+(more.length?`<a href="javascript:void 0" id="moreTab" class="${inMore?'active':''}"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>More</span></a>`:'');
   const mt=$('#moreTab');if(mt)mt.onclick=()=>VA.modal('More',`<div class="nav">${more.map(n=>link(n)).join('')}</div>`,'',m=>$$('a',m).forEach(x=>x.addEventListener('click',()=>VA.closeModal())));
-  $$('#roles button').forEach(b=>b.classList.toggle('on',b.dataset.role===S.role));
-  const me=VA.me();$('#who').innerHTML=`<div class="avatar">${me.initials}</div><div><b>${esc(me.name)}</b>${esc(me.title)}</div>`;
+  const me=VA.me();if(VA.auth)VA.auth.renderWho(me);else $('#who').innerHTML=`<div class="avatar">${me.initials}</div><div><b>${esc(me.name)}</b>${esc(me.title)}</div>`;
 }
-function route(){if(!S)return;
+function route(){
+  if(VA.auth&&!VA.auth.session()){if(!document.getElementById('auth'))VA.auth.show();return}
+  if(!S)return;
   const raw=location.hash.replace(/^#\/?/,'')||'fleet';const [path,qs]=raw.split('?');
   VA.query=new URLSearchParams(qs||'');
   const parts=(path||'fleet').split('/');
@@ -252,8 +254,10 @@ VA.route=route;
 VA.go=h=>{if(location.hash==='#/'+h)route();else location.hash='#/'+h};
 window.addEventListener('hashchange',()=>{route();window.scrollTo(0,0)});
 document.addEventListener('DOMContentLoaded',()=>{
-  $('#roles').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.role=b.dataset.role;save();
-    const me=VA.me();toast(`Viewing as <b>${esc(me.name)}</b> · ${esc(me.title)}`);route()});
+  document.addEventListener('click',e=>{const b=e.target.closest('#roles button[data-role]');if(!b)return;if(VA.auth)VA.auth.setRole(b.dataset.role);else{S.role=b.dataset.role;save()}
+    {const um=document.getElementById('userMenu');if(um)um.hidden=true}
+    const me=VA.me();toast(`Viewing as <b>${esc(VA.auth?VA.auth.roleLabel(S.role):'')}</b> · ${esc(me.name)}, ${esc(me.title)}`);route();const wb=document.getElementById('whoBtn');if(wb)wb.focus()});
+  if(VA.auth&&!VA.auth.session())VA.auth.show();
   $('#resetBtn').addEventListener('click',()=>{if(confirm('Reset all demo data?'))VA.reset()});
   $('#largeBtn').addEventListener('click',()=>VA.toggleLarge());
   boot();
@@ -264,6 +268,7 @@ async function boot(){
   try{await DAL.init();step('state');S=await DAL.getState();step('seed?');if(!S||S.v!==2)await VA.seedStandard()}
   catch(e){console.error(e);$('#view').innerHTML='<div class="empty">This browser blocked IndexedDB storage. Try a normal (non-private) window.</div>';return}
   VA.dirty();
+  {const ses=VA.auth&&VA.auth.session();if(ses&&ses.role)S.role=ses.role}
   step('count');VA.logCount=await DAL.countLogs();
   step('faa');if(VA.faa)await VA.faa.init();
   step('agg');await VA.refreshAgg();step('route');

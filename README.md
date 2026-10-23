@@ -3,7 +3,7 @@
 "The flight department in a box for 1–5 aircraft." Open `index.html` in Chrome/Edge/Safari — no server and no build step, and it works offline. Everything is **DEMO** data. The N-numbers N350VK / N612VK / N813ZK, and the large-dataset tails, were checked as **not** present in FAA MASTER, RESERVED or DEREG (2026-10-22).
 
 ## Screens
-Fleet · Aircraft detail · Schedule (blocks unairworthy aircraft) · Log flight (simulated ForeFlight, CSV import) · SD-card import (any avionics card or zip) · Maintenance (fleet due list) · Squawks (incl. auto-detected drafts) · Engine trends · Costs (tabs: Overview `#/costs`, Expenses `#/costs/expenses`, Report `#/costs/report`; old `#/expenses` and `#/tco` links redirect) · Integrations · Data sources (FAA registry versioning/updates, change review, AD feed) · Add aircraft (FAA N-number lookup + type library) · Plans.
+Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password, Create account) · Sign-up with billing (account → aircraft via FAA N-number lookup → plan + 14-day trial → simulated checkout) · Fleet · Aircraft detail · Schedule (blocks unairworthy aircraft) · Log flight (simulated ForeFlight, CSV import) · SD-card import (any avionics card or zip) · Maintenance (fleet due list) · Squawks (incl. auto-detected drafts) · Engine trends · Costs (tabs: Overview `#/costs`, Expenses `#/costs/expenses`, Report `#/costs/report`; old `#/expenses` and `#/tco` links redirect) · Integrations · Data sources (FAA registry versioning/updates, change review, AD feed) · Add aircraft (FAA N-number lookup + type library) · Plans.
 
 ## Pricing (per aircraft per month)
 | Tier | Price |
@@ -70,3 +70,10 @@ Speed-ups in the polish pass: index `getAll` batches instead of per-row cursors;
 - Forms show errors inline next to the field (`aria-invalid` plus the message) instead of only a toast.
 - Lists: a loading spinner on slow queries, an error message with "Try again", and a "No matches" message with "clear filters". Lists also recover when the current page is past the end.
 - Hover and press transitions, with reduced motion respected. Mobile fixes for tabs and list toolbars.
+
+## Sign-in and billing (DEMO)
+- First load shows the sign-in screen. **Explore the demo** signs in as the demo owner (Trevor Hill), or choose Pilot or Mechanic. Deep links are kept: open `#/costs/report` signed out, sign in, and you land there.
+- **Create account:** account details → add aircraft by N-number (FAA lookup picks the tier; tails not in the file get a tier picker) → plan summary with a 14-day free trial (`VA.BILLING_CONFIG.trialDays`, placeholder) → "Continue to secure checkout" → *Demo checkout: no card is charged* → into the app with an active subscription.
+- The header avatar menu holds **View as** (owner, pilot, mechanic), **Account**, **Billing** (owners only) and **Sign out**.
+- Billing shows the plan per aircraft, the monthly total, the next invoice, demo invoices, a simulated payment-method update, and add/remove aircraft with a proration note.
+- Accounts are stored only in this browser. Passwords are never stored, only a salted PBKDF2-SHA-256 hash (WebCrypto). No third-party sign-in or payment branding. Production auth and billing: ARCHITECTURE.md §15–16.
