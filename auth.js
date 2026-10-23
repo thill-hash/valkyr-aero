@@ -21,7 +21,7 @@ const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).joi
 /* Two separate session slots: the admin console (#/admin…, va.admin.session via staff.js) and the operator app (va.session).
    The page runs in one mode, fixed at load; crossing between them reloads. "View as operator" uses a tab-only slot (va.imp). */
 const IMP='va.imp';const STAFF=window.VA_STAFF;
-const isAdminHash=h=>/^#\/admin(\/|$)/.test(h||'');
+const isAdminHash=h=>/^#\/admin(\/|\?|$)/.test(h||'');
 const MODE=isAdminHash(location.hash)?'admin':'app';
 const ADMIN_URL=()=>location.protocol==='file:'?'admin/index.html':'admin/';
 function opSession(){try{const s=JSON.parse(localStorage.getItem(SES)||sessionStorage.getItem(SES)||'null');return s&&!s.platform?s:null}catch(e){return null}}
