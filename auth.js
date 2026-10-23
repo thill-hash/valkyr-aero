@@ -83,9 +83,8 @@ const roleLabel=r=>r==='platform'?'Platform admin':(ROLES.find(x=>x[0]===r)||ROL
 A.roleLabel=roleLabel;
 
 /* ---------- sign-in screen ---------- */
-const LOGO=(id)=>`<svg class="logo" viewBox="0 0 40 32" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#5ff2ff"/><stop offset="1" stop-color="#00a8ff"/></linearGradient></defs><path d="M1 4h10.5L20 21.5 28.5 4H39L22.5 30h-5z" fill="url(#${id})"/><path d="M1 4h10.5l2.2 4.6H5.4z" fill="#07090d" opacity=".55"/><path d="M39 4H28.5l-2.2 4.6h8.3z" fill="#07090d" opacity=".55"/></svg>`;
 function shell(inner){return `<div class="auth-wrap"><section class="auth-card" aria-labelledby="authH">
-    <div class="auth-brand">${LOGO('algM')}<span class="wordmark">VALKYR<b>360</b></span></div>
+    <div class="auth-brand"><img class="v360-logo" src="brand/valkyr360-logo.svg" alt="Valkyr360" width="146" height="40"></div>
     <div class="by-hs">by <img src="brand/hill-systems-logo-sm.png" alt="Hill Systems" height="16"></div>
     ${inner}
     <p class="auth-note">Demo: accounts are stored only in this browser.</p>

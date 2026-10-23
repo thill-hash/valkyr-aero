@@ -15,7 +15,7 @@ VA.printHead=function(){const el=$('.print-brand');if(!el)return;
   const d=new Date();const date=d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
   const tabEl=document.querySelector('#view .tabs .on');let sec='';if(tabEl){const c=tabEl.cloneNode(true);c.querySelectorAll('.count').forEach(x=>x.remove());sec=c.textContent.trim()}
   const t0=($('#pageTitle')||{}).textContent||'';const title=sec&&!t0.includes(sec)?t0+' · '+sec:t0;const meta=[operatorOf(),tailOf(),'Printed '+date].filter(Boolean);
-  el.innerHTML=`<img src="brand/hill-systems-logo-print.png" alt="Hill Systems" height="26"><div class="ph-t"><b>Valkyr360</b>${title?' · <span id="phTitle">'+esc(title)+'</span>':''}<div class="ph-m" id="phMeta">${meta.map(esc).join(' · ')}</div></div>`};
+  el.innerHTML=`<div class="ph-in"><img class="ph-logo" src="brand/valkyr360-logo-print.svg" alt="Valkyr360" width="88" height="24"><div class="ph-t">${title?'<span id="phTitle">'+esc(title)+'</span>':''}<div class="ph-m" id="phMeta">${meta.map(esc).join(' · ')}</div></div><div class="ph-by">by <img class="ph-hs" src="brand/hill-systems-logo-print.png" alt="Hill Systems" width="57" height="16"></div></div>`};
 const settle=async(ms=10000)=>{const t=Date.now();await new Promise(r=>setTimeout(r,60));
   while(Date.now()-t<ms){const v=$('#view');if(v&&!v.querySelector('.spinner')&&!v.querySelector('[aria-busy=true]'))break;await new Promise(r=>setTimeout(r,80))}
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))};
@@ -28,5 +28,5 @@ window.addEventListener('afterprint',()=>setTimeout(VA.endPrint,0));
 function addBtn(){const tr=$('.top-right');if(!tr||$('#printBtn'))return;
   const b=document.createElement('button');b.type='button';b.id='printBtn';b.className='icon-btn print-btn no-print';b.title='Print';b.setAttribute('aria-label','Print');b.innerHTML=ICON;b.onclick=()=>VA.print();tr.insertBefore(b,tr.firstChild)}
 addBtn();
-const prev=VA.afterRoute;VA.afterRoute=function(v,view){if(prev)prev(v,view);addBtn();const tp=document.getElementById('tPrint');if(tp)tp.onclick=()=>VA.print()};
+const prev=VA.afterRoute;VA.afterRoute=function(v,view){if(prev)prev(v,view);addBtn();setTimeout(VA.printHead,0);const tp=document.getElementById('tPrint');if(tp)tp.onclick=()=>VA.print()};
 })();

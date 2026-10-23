@@ -30,7 +30,9 @@
 html,body{margin:0;min-height:100%;background:#f3f4f6;color:#111827;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .card{width:100%;max-width:360px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:28px 24px}
-.logo{display:block;height:36px;width:auto;margin:0 0 20px}
+.v360{display:block;height:32px;width:auto;margin:0 0 6px}
+.by{display:flex;align-items:center;gap:6px;margin:0 0 22px;font-size:12px;color:#6b7280}
+.logo{display:block;height:16px;width:auto}
 h1{font-size:20px;font-weight:600;margin:0 0 18px}
 label{display:block;font-size:13px;font-weight:500;margin:0 0 14px;color:#374151}
 input{display:block;width:100%;margin-top:6px;padding:9px 10px;font:inherit;color:#111827;background:#fff;border:1px solid #d1d5db;border-radius:6px}
@@ -45,7 +47,8 @@ button{font:inherit;cursor:pointer}
 <body>
 <main>
 <section class="card" aria-labelledby="h">
-  <img class="logo" src="../brand/hill-systems-logo-print.png" alt="Hill Systems">
+  <img class="v360" src="../brand/valkyr360-logo-print.svg" alt="Valkyr360" width="117" height="32">
+  <div class="by">by <img class="logo" src="../brand/hill-systems-logo-print.png" alt="Hill Systems" width="57" height="16"></div>
   <h1 id="h">Admin</h1>
   <form id="adminForm" novalidate>
     <div class="err" id="adminErr" role="alert" hidden></div>

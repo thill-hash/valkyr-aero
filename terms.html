@@ -41,7 +41,11 @@
   .skip-link:focus{left:12px;top:12px;background:#fff;padding:8px 12px;border:2px solid var(--accent);z-index:10}
   header.top{border-bottom:1px solid var(--line);background:#fff}
   .top-inner{max-width:860px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  .top-inner img{height:40px;width:auto;display:block}
+  .brandrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brandrow .v360{height:36px;width:auto;display:block}
+  .brandrow .by{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .brandrow .hs{height:16px;width:auto;display:block}
+  .print-date{display:none}
   .top-actions{display:flex;gap:10px;align-items:center}
   .top-actions a,.top-actions button{font:600 14px var(--sans);color:var(--accent);background:none;border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;text-decoration:none}
   .top-actions a:hover,.top-actions button:hover{border-color:var(--accent)}
@@ -65,7 +69,16 @@
   footer{max-width:860px;margin:0 auto;padding:20px 24px 40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
   @media (max-width:640px){ nav.toc ol{columns:1} h1{font-size:25px} }
   @media print{
-    @page{margin:18mm 16mm}
+    @page{margin:14mm 16mm 16mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:9px/1 system-ui,sans-serif;color:#555}}
+    /* header repeats on every printed page (position:fixed); space reserved on each page (box-decoration-break:clone) */
+    header.top{position:fixed;top:0;left:0;right:0;height:13mm;background:#fff;z-index:5}
+    header.top .top-inner{height:100%;padding:0 0 2mm;align-items:center;border-bottom:1.5px solid #000;flex-wrap:nowrap}
+    header.top img{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    .brandrow{flex:1;flex-wrap:nowrap}
+    .brandrow .v360{height:24px}
+    .brandrow .by{font-size:10px;color:#333;order:3}
+    .print-date{display:block;flex:1;font-size:10px;color:#333;order:2}
+    main{padding-top:17mm!important;-webkit-box-decoration-break:clone;box-decoration-break:clone}
     body{font-size:11pt;line-height:1.45}
     .no-print,.skip-link{display:none!important}
     header.top{border:0}
@@ -81,7 +94,7 @@
 <a class="skip-link" href="#terms">Skip to content</a>
 <header class="top">
   <div class="top-inner">
-    <a href="index.html" aria-label="Valkyr360 home"><img src="brand/hill-systems-logo-print.png" alt="Hill Systems"></a>
+    <div class="brandrow"><a class="brand" href="index.html" aria-label="Valkyr360 home"><img class="v360" src="brand/valkyr360-logo-print.svg" alt="Valkyr360" width="146" height="40"></a><span class="by">by <img class="hs" src="brand/hill-systems-logo-print.png" alt="Hill Systems" width="57" height="16"></span><span class="print-date" id="printDate"></span></div>
     <div class="top-actions no-print">
       <a href="index.html">Back to Valkyr360</a>
       <button type="button" onclick="window.print()">Print</button>
@@ -419,5 +432,6 @@
   © 2026 HillIndustries, doing business as Hill Systems. Valkyr360 and Hill Systems are trademarks of HillIndustries. ·
   <a href="/privacy">Privacy Policy</a> · <a href="index.html">Valkyr360</a>
 </footer>
+<script>(function(){function d(){var n=new Date(),e=document.getElementById('printDate');if(e)e.textContent='Terms of Service · Printed '+n.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})}d();window.addEventListener('beforeprint',d)})();</script>
 </body>
 </html>

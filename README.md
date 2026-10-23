@@ -22,7 +22,7 @@ The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are n
 
 ## Print
 - Every screen has a print icon in the top bar (or use Ctrl/Cmd+P). Printing uses white paper and black text, hides navigation, buttons, banners and demo tools, and prints full lists (no pagination or scroll truncation) with repeating table headers.
-- Each page gets a header (Hill Systems logo, Valkyr360, page and section, operator, tail where relevant, print date) and page numbers in the footer. Aircraft › Due list prints as a maintenance status report; Aircraft › Logbook prints as a logbook export.
+- Every printed page repeats a header (Valkyr360 logo, page and section, operator, tail where relevant, print date, "by Hill Systems" logo) and page numbers in the footer. The header is `position: fixed` in print CSS (repeats per page) with real `<img>` logos and `print-color-adjust: exact`; the Terms page prints the same way. Aircraft › Due list prints as a maintenance status report; Aircraft › Logbook prints as a logbook export.
 - Tests write PDFs of key pages to `screenshots/print/`.
 
 ## Admin console (DEMO)
@@ -40,7 +40,7 @@ The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are n
 - `gen.js` (history + large dataset generator), `csv.js` (CSV and Garmin import, exceedances)
 - `importer.js` (universal parser registry + Web Worker), `types.js` (FAA type library, tiers, templates), `faasync.js` (FAA versioning, deltas, reviews, AD matching)
 - `data/` — FAA-derived data, built by `tools/build_faa.py` from ReleasableAircraft.zip (owner names/addresses excluded). `faa-version.js` holds the dataset version and SHA-256 hashes.
-- `brand/` — Hill Systems logos, `og-image.png` (1200×630 link preview; Open Graph + Twitter card meta in `index.html`), `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (180×180)
+- `brand/` — Valkyr360 logo (`valkyr360-logo.svg` for dark UI, `valkyr360-logo-print.svg` for white/print, `valkyr360-mark*.svg`, PNG exports `valkyr360-logo-dark.png` / `-light.png`), Hill Systems logos, `og-image.png` (1200×630 link preview; Open Graph + Twitter card meta in `index.html`), `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (180×180)
 - `vendor/fflate.min.js` (MIT)
 - `samples/` — DEMO avionics files, CSVs, `demo-sd-card.zip`, and `faa-update-SIMULATED-2026-10-23.json`. Regenerate with `node tools/make_samples.js` and `node tools/make_faa_update.js`.
 - `terms.html` (Terms of Service, version 2026-10-23; also `/terms/`), `privacy.html` (placeholder; also `/privacy/`), `print.js` (print support)

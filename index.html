@@ -33,38 +33,27 @@
 <a class="skip-link" href="#view" onclick="event.preventDefault();document.getElementById('view').focus()">Skip to content</a>
 <div id="app">
   <aside class="sidebar">
-    <a class="brand" href="#/fleet" aria-label="Valkyr360 home">
-      <svg class="logo" viewBox="0 0 40 32" aria-hidden="true">
-        <defs><linearGradient id="lg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#5ff2ff"/><stop offset="1" stop-color="#00a8ff"/></linearGradient></defs>
-        <path d="M1 4h10.5L20 21.5 28.5 4H39L22.5 30h-5z" fill="url(#lg)"/>
-        <path d="M1 4h10.5l2.2 4.6H5.4z" fill="#07090d" opacity=".55"/>
-        <path d="M39 4H28.5l-2.2 4.6h8.3z" fill="#07090d" opacity=".55"/>
-      </svg>
-      <span class="wordmark">VALKYR<b>360</b></span>
-    </a>
+    <a class="brand" href="#/fleet" aria-label="Valkyr360 home"><img class="v360-logo" src="brand/valkyr360-logo.svg" alt="Valkyr360" width="117" height="32"></a>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div class="demo-tag">DEMO DATA</div>
       <p>Fictitious aircraft, N-numbers, ADs and people. Base: KM02 Dickson County, TN.</p>
       <button class="switch" id="largeBtn" aria-pressed="false"><span class="tr"></span><span>Large demo dataset<br><span class="dim">~50 aircraft · 20+ yrs of logs</span></span></button>
       <button class="link-btn" id="resetBtn" style="margin-top:10px">Reset demo</button>
-      <div class="hs-foot"><img src="brand/hill-systems-icon-64.png" alt="" width="14" height="14"> Valkyr360 by Hill Systems · <a href="terms.html" id="footTerms">Terms</a></div>
+      <div class="hs-foot">by <img src="brand/hill-systems-logo.png" alt="Hill Systems" height="16" style="height:16px;width:auto;vertical-align:middle"> · <a href="terms.html" id="footTerms">Terms</a></div>
     </div>
   </aside>
   <div class="main">
     <header class="topbar">
       <div class="top-left">
-        <a class="brand brand-mobile" href="#/fleet" aria-label="Valkyr360 home">
-          <svg class="logo" viewBox="0 0 40 32" aria-hidden="true"><path d="M1 4h10.5L20 21.5 28.5 4H39L22.5 30h-5z" fill="#00e1ff"/></svg>
-          <span class="wordmark">VALKYR<b>360</b></span>
-        </a>
+        <a class="brand brand-mobile" href="#/fleet" aria-label="Valkyr360 home"><img class="v360-logo" src="brand/valkyr360-logo.svg" alt="Valkyr360" width="88" height="24"></a>
         <h1 id="pageTitle">Fleet</h1>
       </div>
       <div class="top-right">
         <div class="who" id="who"></div>
       </div>
     </header>
-    <div class="print-brand" aria-hidden="true"><img src="brand/hill-systems-logo-print.png" alt="Hill Systems" height="28"><span>Valkyr360 by Hill Systems</span></div>
+    <div class="print-brand" aria-hidden="true"><div class="ph-in"><img class="ph-logo" src="brand/valkyr360-logo-print.svg" alt="Valkyr360" width="88" height="24"><div class="ph-t"><div class="ph-m" id="phMeta"></div></div><div class="ph-by">by <img class="ph-hs" src="brand/hill-systems-logo-print.png" alt="Hill Systems" width="57" height="16"></div></div></div>
     <main id="view" class="view" tabindex="-1"><div class="spinner"></div></main>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
