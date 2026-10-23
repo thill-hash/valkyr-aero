@@ -7,6 +7,7 @@
 const {$,$$,esc}=VA;
 const ACC='va.accounts',SES='va.session',ITER=150000;
 const ROLES=[['owner','Owner','Fleet, costs, plans and billing'],['pilot','Pilot','Schedule, log flights, squawks'],['mechanic','Mechanic','Maintenance, squawks, sign-offs']];
+const ADMIN={uid:'platform-admin',email:'admin@hillsystems.demo',name:'Hill Systems Admin',org:'Hill Systems (DEMO)',role:'platform',platform:true};
 const DEMO={uid:'demo',email:'demo@valkyr-aero.demo',name:'Trevor Hill',org:'Valkyr360 Demo Flight Dept (DEMO)',role:'owner',demo:true};
 const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -22,7 +23,7 @@ function session(){try{return JSON.parse(localStorage.getItem(SES)||sessionStora
 function setSession(s,remember){localStorage.removeItem(SES);sessionStorage.removeItem(SES);if(s)(remember?localStorage:sessionStorage).setItem(SES,JSON.stringify(s))}
 function updateSession(patch){const s=session();if(!s)return;const rem=!!localStorage.getItem(SES);setSession({...s,...patch},rem)}
 
-const scopeOf=s=>s&&!s.demo&&s.uid?'valkyr-aero-'+s.uid:'valkyr-aero';
+const scopeOf=s=>s&&!s.demo&&!s.platform&&s.uid?'valkyr-aero-'+s.uid:'valkyr-aero';
 const A=VA.auth={ROLES,session,accounts,
   scope(){return scopeOf(session())},
   /* create: returns {ok}|{field,msg} */
@@ -51,7 +52,8 @@ const A=VA.auth={ROLES,session,accounts,
   async verify(email,password){email=normEmail(email);const a=accounts().find(x=>x.email===email);
     if(!a||!hasCrypto()){if(hasCrypto())await hashPw(String(password||'x'),new Uint8Array(16),2000);return null}
     const h=await hashPw(String(password||''),unb64(a.salt),a.iter||ITER);return h===a.hash?a:null},
-  begin(acct,remember){const s=acct.demo?{...DEMO,role:acct.role||'owner'}:{uid:acct.id,email:acct.email,name:acct.name,org:acct.org,role:acct.role||'owner',demo:false};
+  begin(acct,remember){const s=acct.platform?{...ADMIN}:acct.demo?{...DEMO,role:acct.role||'owner'}:{uid:acct.id,email:acct.email,name:acct.name,org:acct.org,role:acct.role||'owner',demo:false};
+    if(!acct.platform&&!acct.demo){const l=accounts();const x=l.find(y=>y.id===acct.id);if(x){x.lastActive=new Date().toISOString();saveAccounts(l)}}
     s.initials=initials(s.name);s.at=new Date().toISOString();setSession(s,remember);
     /* each account has its own IndexedDB scope; switching scope = reload into the other database */
     if(VA.scopeLoaded&&scopeOf(s)!==VA.scopeLoaded){const want=A.pendingHash||location.hash||'#/fleet';A.pendingHash=null;VA.switching=true;history.replaceState(null,'',location.pathname+location.search+want);location.reload();return}
@@ -60,11 +62,18 @@ const A=VA.auth={ROLES,session,accounts,
     if(want&&want!==location.hash)location.hash=want;else VA.route();
     VA.toast(`Signed in as <b>${esc(s.name)}</b> · ${esc(roleLabel(s.role))}`,'ok')},
   demo(role='owner'){A.begin({demo:true,role},true)},
-  setRole(r){if(!ROLES.some(x=>x[0]===r))return;updateSession({role:r});const S=VA.state();S.role=r;VA.save()},
+  adminDemo(){A.pendingHash='#/admin';A.begin({platform:true},true)},
+  /* platform admin: open an operator read-only; the admin session is parked in sessionStorage */
+  impersonate(op){const me=session();if(!me||!me.platform)return;sessionStorage.setItem('va.admin.return',JSON.stringify(me));
+    const s={uid:op.uid,demo:op.uid==='demo',email:op.email,name:op.owner||op.email,org:op.name,role:'owner',initials:initials(op.owner||op.name),impersonatedBy:me.email,at:new Date().toISOString()};
+    localStorage.removeItem(SES);sessionStorage.setItem(SES,JSON.stringify(s));VA.switching=true;history.replaceState(null,'',location.pathname+location.search+'#/fleet');location.reload()},
+  exitImpersonation(){const r=sessionStorage.getItem('va.admin.return');sessionStorage.removeItem('va.admin.return');sessionStorage.removeItem(SES);if(r)localStorage.setItem(SES,r);
+    VA.switching=true;history.replaceState(null,'',location.pathname+location.search+'#/admin');location.reload()},
+  setRole(r){if(!ROLES.some(x=>x[0]===r))return;{const ss=session();if(ss&&(ss.platform||ss.impersonatedBy))return}updateSession({role:r});const S=VA.state();S.role=r;VA.save()},
   signOut(){setSession(null);A.draft=null;closeMenu();VA.closeModal();A.pendingHash=null;show('signin');VA.toast('Signed out','ok')},
   show,hide
 };
-const roleLabel=r=>(ROLES.find(x=>x[0]===r)||ROLES[0])[1];
+const roleLabel=r=>r==='platform'?'Platform admin':(ROLES.find(x=>x[0]===r)||ROLES[0])[1];
 A.roleLabel=roleLabel;
 
 /* ---------- sign-in screen ---------- */
@@ -90,7 +99,7 @@ const VIEWS=A.VIEWS={
       <button class="btn primary auth-submit" id="signinBtn" type="submit">Sign in</button>
     </form>
     <button class="btn auth-submit auth-demo" id="authDemo" type="button">Explore the demo</button>
-    <p class="auth-alt"><button type="button" class="link-btn" id="authCreate">Create account</button></p>`),
+    <p class="auth-alt"><button type="button" class="link-btn" id="authCreate">Create account</button> · <button type="button" class="link-btn" id="authAdmin">Admin demo</button></p>`),
   create:()=>shell(`${steps(0)}<h1 id="authH">Create account</h1>
     <form class="form auth-form" id="createForm" novalidate>
       ${field('name','Name','text','autocomplete="name" required value="'+esc(A.draft&&A.draft.name||'')+'"')}
@@ -126,7 +135,7 @@ function busy(btn,on,txt){btn.disabled=on;if(on){btn.dataset.t=btn.textContent;b
 function wire(el,view){
   $$('[data-eye]',el).forEach(b=>b.onclick=()=>{const i=b.previousElementSibling;const sh=i.type==='password';i.type=sh?'text':'password';b.textContent=sh?'Hide':'Show';b.setAttribute('aria-label',sh?'Hide password':'Show password')});
   const on=(id,fn)=>{const x=$('#'+id,el);if(x)x.onclick=fn};
-  on('authDemo',()=>A.demo('owner'));$$('[data-demo]',el).forEach(b=>b.onclick=()=>A.demo(b.dataset.demo));
+  on('authDemo',()=>A.demo('owner'));on('authAdmin',()=>A.adminDemo());$$('[data-demo]',el).forEach(b=>b.onclick=()=>A.demo(b.dataset.demo));
   on('authForgot',()=>show('forgot'));on('authCreate',()=>show('create'));on('authBack',()=>show('signin'));
   const sf=$('#signinForm',el);if(sf)sf.onsubmit=async e=>{e.preventDefault();const err=$('#authErr',el);err.hidden=true;
     const email=sf.email.value,pw=sf.password.value;
@@ -145,20 +154,21 @@ function wire(el,view){
 /* ---------- header user menu ---------- */
 function closeMenu(){const m=$('#userMenu');if(m)m.hidden=true;const b=$('#whoBtn');if(b)b.setAttribute('aria-expanded','false')}
 A.renderWho=function(me){const s=session()||{};const who=$('#who');if(!who)return;
-  const name=s.demo||!s.name?me.name:s.name,ini=s.demo||!s.name?me.initials:s.initials,sub=s.demo?me.title:roleLabel(VA.state().role)+(s.org?' · '+s.org:'');
+  const name=s.demo||!s.name?me.name:s.name,ini=s.demo||!s.name?me.initials:s.initials,sub=s.platform?'Platform admin':s.impersonatedBy?'Read-only view':s.demo?me.title:roleLabel(VA.state().role)+(s.org?' · '+s.org:'');
   const open=$('#userMenu')&&!$('#userMenu').hidden;
   who.innerHTML=`<button class="who-btn" id="whoBtn" aria-haspopup="true" aria-expanded="${open}" aria-controls="userMenu"><span class="avatar">${esc(ini)}</span><span class="who-txt"><b>${esc(name)}</b>${esc(sub)}</span><svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <div class="user-menu" id="userMenu" ${open?'':'hidden'}>
     <div class="um-head"><span class="avatar lg">${esc(ini)}</span><div><b>${esc(s.name||name)}</b><span>${esc(s.email||'')}</span><span class="dim">${esc(s.org||'')}</span></div></div>
-    <div class="um-sec"><div class="um-lab" id="roleLab">${s.demo?'Explore as':'View as'}</div>
-      <div class="roles" id="roles" role="radiogroup" aria-labelledby="roleLab">${ROLES.map(([r,l,d])=>`<button role="radio" aria-checked="${VA.state().role===r}" data-role="${r}" class="${VA.state().role===r?'on':''}" title="${esc(d)}">${l}</button>`).join('')}</div></div>
-    <button class="um-item" id="umAccount">Account</button>
+    ${s.platform||s.impersonatedBy?'':`<div class="um-sec"><div class="um-lab" id="roleLab">${s.demo?'Explore as':'View as'}</div>
+      <div class="roles" id="roles" role="radiogroup" aria-labelledby="roleLab">${ROLES.map(([r,l,d])=>`<button role="radio" aria-checked="${VA.state().role===r}" data-role="${r}" class="${VA.state().role===r?'on':''}" title="${esc(d)}">${l}</button>`).join('')}</div></div>`}
+    ${s.impersonatedBy?'<button class="um-item" id="umExit">Exit operator view</button>':`<button class="um-item" id="umAccount">Account</button>
     ${VA.state().role==='owner'?'<a class="um-item" id="umBilling" href="#/billing">Billing</a>':''}
-    <button class="um-item danger" id="umSignOut">Sign out</button>
+    <button class="um-item danger" id="umSignOut">Sign out</button>`}
   </div>`;
-  $('#whoBtn').onclick=e=>{e.stopPropagation();const m=$('#userMenu');m.hidden=!m.hidden;$('#whoBtn').setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden)$('#roles button.on',m).focus()};
-  $('#umSignOut').onclick=()=>A.signOut();
-  $('#umAccount').onclick=()=>{closeMenu();accountModal()};const ub=$('#umBilling');if(ub)ub.onclick=()=>closeMenu();
+  $('#whoBtn').onclick=e=>{e.stopPropagation();const m=$('#userMenu');m.hidden=!m.hidden;$('#whoBtn').setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden){const f=$('#roles button.on',m)||$('.um-item',m);if(f)f.focus()}};
+  if($('#umExit'))$('#umExit').onclick=()=>A.exitImpersonation();
+  if($('#umSignOut'))$('#umSignOut').onclick=()=>A.signOut();
+  if($('#umAccount'))$('#umAccount').onclick=()=>{closeMenu();accountModal()};const ub=$('#umBilling');if(ub)ub.onclick=()=>closeMenu();
 };
 document.addEventListener('click',e=>{const m=$('#userMenu');if(m&&!m.hidden&&!e.target.closest('#who'))closeMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#userMenu');if(m&&!m.hidden){closeMenu();$('#whoBtn').focus()}}});

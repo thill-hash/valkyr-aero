@@ -33,7 +33,7 @@ function cycle(sub){const t=today();if(t<sub.trialEnds)return {start:sub.created
   let d=sub.anchor;while(addM(d,1)<=t)d=addM(d,1);return {start:d,next:addM(d,1),trial:false}}
 function prorate(sub,price){const c=cycle(sub);const left=days(today(),c.next),len=days(c.start,c.next);
   return c.trial?{trial:true,amount:0,left,cycleDays:len}:{trial:false,amount:Math.round(price*left/len*100)/100,left,cycleDays:len}}
-const B=VA.billing={CONFIG,tierOf,total,lines,cycle,prorate,money2,
+const B=VA.billing={CONFIG,tierOf,total,lines,cycle,prorate,money2,demoSub,all,put,fmtDate,addD,addM,
   get(){const s=A.session();if(!s)return null;const a=all();let sub=a[s.uid];if(!sub&&s.demo){sub=demoSub();put('demo',sub)}
     if(sub&&sub.status==='canceling'&&today()>=sub.cancelAt){sub.status='canceled';put(sub.uid,sub)}return sub||null},
   save(sub){put(sub.uid,sub)},
@@ -49,7 +49,7 @@ const B=VA.billing={CONFIG,tierOf,total,lines,cycle,prorate,money2,
     sub.adjustments.push({date:today(),desc:`${a.tail} removed (${p.left}/${p.cycleDays} days unused)`,amount:-p.amount});B.save(sub);
     return `${a.tail} removed · new total ${money0(total())}/mo · prorated credit ${money2(p.amount)} on next invoice`},
   previewRemove(a){const sub=B.get();if(!sub)return '';const p=prorate(sub,tierOf(a.cls).price);return p.trial?'No proration during trial.':`Prorated credit: ${money2(p.amount)} (${p.left} unused days) on next invoice.`},
-  readOnly(){const s=B.get();return !!(s&&s.status==='canceled')},
+  readOnly(){const ss=A.session();if(ss&&ss.impersonatedBy)return true;const s=B.get();return !!(s&&(s.status==='canceled'||s.status==='suspended'))},
   async lookup(n){const r=await VA.types.lookupN(n);if(r.error)return {error:r.error};if(r.notFound)return {notFound:true,tail:r.n};
     if(!r.type)return {notFound:true,tail:r.n};
     const c=VA.types.classify(r.type,r);return {item:{tail:r.n,model:`${r.type.mfr} ${r.type.model}`.trim(),year:r.year||'',tier:c.tier,code:r.code,flags:c.flags||[]},type:r.type,reg:r}}
@@ -98,18 +98,21 @@ VA.seedAccount=async function(){const s=A.session()||{};const sub=all()[s.uid]||
     VA.addAircraft({type,reg,tail:it.tail,tier:it.tier,model:type?null:it.model});}
   await VA.flush();
 };
-VA.syncSide=function(){const acct=VA.isAccount();const f=$('.side-foot');if(!f)return;
+VA.syncSide=function(){const acct=VA.isAccount();const f=$('.side-foot');if(!f)return;const ss=A.session()||{};const noDemoTools=acct||ss.platform||ss.impersonatedBy;
   f.querySelector('p').textContent=acct?(VA.state().org||''):'Fictitious aircraft, N-numbers, ADs and people. Base: KM02 Dickson County, TN.';
-  f.querySelector('.demo-tag').textContent=acct?'DEMO ACCOUNT':'DEMO DATA';$('#largeBtn').style.display=acct?'none':'';$('#resetBtn').style.display=acct?'none':''};
+  f.querySelector('.demo-tag').textContent=acct?'DEMO ACCOUNT':'DEMO DATA';$('#largeBtn').style.display=noDemoTools?'none':'';$('#resetBtn').style.display=noDemoTools?'none':''};
 
 /* ---------- read-only after cancellation ---------- */
 const RO_OK='a[href],[data-ro-ok],[data-lc],[data-tab],[data-close],#roles button,#whoBtn,.um-item,.tabs a,#moreTab,select,input[type=search]';
-document.addEventListener('click',e=>{if(!VA.ready||!B.readOnly())return;const t=e.target.closest('button,label.btn,[data-book],input[type=checkbox],input[type=file]');if(!t||!t.closest('#view,#modalRoot'))return;if(t.closest(RO_OK))return;
-  e.preventDefault();e.stopImmediatePropagation();VA.toast('Read-only: subscription ended. <a href="#/billing">Billing</a>','bad')},true);
+document.addEventListener('click',e=>{if(!VA.ready||!B.readOnly())return;const t=e.target.closest('button,label.btn,[data-book],input[type=checkbox],input[type=file]');if(!t||!t.closest('#view,#modalRoot,.side-foot'))return;if(t.closest(RO_OK))return;
+  e.preventDefault();e.stopImmediatePropagation();VA.toast('Read-only: subscription ended. <a href="#/settings">Settings</a>','bad')},true);
 document.addEventListener('submit',e=>{if(VA.ready&&B.readOnly()&&e.target.closest('#view,#modalRoot')){e.preventDefault();e.stopImmediatePropagation();VA.toast('Read-only: subscription ended','bad')}},true);
-VA.afterRoute=function(v,view){const sub=A.session()&&B.get();if(!sub)return;
-  if(sub.status==='canceled')v.insertAdjacentHTML('afterbegin',`<div class="ro-banner no-print" role="status" id="roBanner"><b>Read-only</b> · subscription ended ${fmtDate(sub.cancelAt)} <span class="spacer"></span><button class="btn sm" data-ro-ok data-export>Export data</button>${S_owner()?'<a class="btn sm" href="#/billing">Billing</a>':''}</div>`);
-  else if(sub.status==='canceling'&&view!=='billing')v.insertAdjacentHTML('afterbegin',`<div class="ro-banner warn no-print" role="status">Subscription ends ${fmtDate(sub.cancelAt)} <span class="spacer"></span>${S_owner()?'<a class="btn sm" href="#/billing">Billing</a>':''}</div>`);
+VA.afterRoute=function(v,view){const ss=A.session();VA.syncSide&&VA.syncSide();
+  if(ss&&ss.impersonatedBy){v.insertAdjacentHTML('afterbegin',`<div class="ro-banner imp no-print" role="status" id="impBanner"><b>Operator view · read-only</b> · ${esc(ss.org||'')} · as ${esc(ss.impersonatedBy)}<span class="spacer"></span><button class="btn sm" data-ro-ok id="impExit">Exit</button></div>`);$('#impExit',v).onclick=()=>A.exitImpersonation();return}
+  const sub=ss&&!ss.platform&&B.get();if(!sub)return;
+  if(sub.status==='suspended'){v.insertAdjacentHTML('afterbegin',`<div class="ro-banner no-print" role="status" id="roBanner"><b>Read-only</b> · account suspended <span class="spacer"></span><button class="btn sm" data-ro-ok data-export>Export data</button></div>`);const ex=v.querySelector('[data-export]');if(ex)ex.onclick=()=>VA.exportAll();return}
+  if(sub.status==='canceled')v.insertAdjacentHTML('afterbegin',`<div class="ro-banner no-print" role="status" id="roBanner"><b>Read-only</b> · subscription ended ${fmtDate(sub.cancelAt)} <span class="spacer"></span><button class="btn sm" data-ro-ok data-export>Export data</button>${S_owner()?'<a class="btn sm" href="#/settings">Settings</a>':''}</div>`);
+  else if(sub.status==='canceling'&&view!=='settings')v.insertAdjacentHTML('afterbegin',`<div class="ro-banner warn no-print" role="status">Subscription ends ${fmtDate(sub.cancelAt)} <span class="spacer"></span>${S_owner()?'<a class="btn sm" href="#/settings">Settings</a>':''}</div>`);
   const ex=v.querySelector('[data-export]');if(ex)ex.onclick=()=>VA.exportAll()};
 const S_owner=()=>VA.state().role==='owner';
 VA.exportAll=async function(){const S=VA.state();const logs=(await DAL.queryLogs({offset:0,limit:1e7})).rows;const exp=(await DAL.queryExpenses({offset:0,limit:1e7})).rows;
@@ -175,16 +178,14 @@ VA.views.billing=function(el){
   const sub=B.get();
   if(!sub){el.innerHTML=`<div class="empty"><b>No subscription.</b> <a href="#/plans">Plans</a></div>`;return {title:'Billing'}}
   const c=cycle(sub),items=lines(),tot=total();const adj=sub.adjustments.reduce((t,a)=>t+a.amount,0);
-  const st=sub.status==='canceled'?['Canceled','bad']:sub.status==='canceling'?['Ends '+fmtDate(sub.cancelAt),'warn']:['Active','ok'];
+  const st=sub.status==='suspended'?['Suspended','bad']:sub.status==='canceled'?['Canceled','bad']:sub.status==='canceling'?['Ends '+fmtDate(sub.cancelAt),'warn']:['Active','ok'];
   el.innerHTML=`<div class="sim-banner small" role="note"><span class="demo-tag">DEMO</span> Simulated billing. No card is stored or charged.</div>
   <div class="stats s4" style="margin-top:14px">
-    <div class="stat"><div class="l">Status</div><div class="v" id="bStatus" style="font-size:20px;color:var(--${st[1]})">${st[0]}</div><div class="s">${sub.status==='canceled'?'Read-only':c.trial?`Trial until ${fmtDate(sub.trialEnds)}`:'Monthly'}</div></div>
+    <div class="stat"><div class="l">Status</div><div class="v" id="bStatus" style="font-size:20px;color:var(--${st[1]})">${st[0]}</div><div class="s">${sub.status==='canceled'?'Read-only':c.trial?`Trial until ${fmtDate(sub.trialEnds)}`:'Monthly'} · <a href="#/settings" id="bManage">Manage</a></div></div>
     <div class="stat"><div class="l">Monthly total</div><div class="v" id="bTotal">${money0(tot)}</div><div class="s">${items.length} aircraft</div></div>
     <div class="stat"><div class="l">Next invoice</div><div class="v" id="bNext" style="font-size:20px">${sub.status==='active'?fmtDate(c.next):'—'}</div><div class="s">${sub.status==='active'?money2(tot+adj)+(adj?` incl. ${money2(adj)} proration`:''):'None'}</div></div>
     <div class="stat"><div class="l">Payment method</div><div class="v" style="font-size:16px">${esc(sub.payment.label)}</div><div class="s"><button class="link-btn" id="bPay">Update</button></div></div>
   </div>
-  ${sub.status==='canceling'?`<div class="check warn" style="margin-top:14px" id="bCancelNote">Ends ${fmtDate(sub.cancelAt)}. Full access until then, then read-only and exportable. <button class="btn sm" id="bResume" style="margin-left:8px">Keep subscription</button></div>`:''}
-  ${sub.status==='canceled'?`<div class="check bad" style="margin-top:14px" id="bCancelNote">Ended ${fmtDate(sub.cancelAt)}. Data is read-only. <button class="btn sm" data-ro-ok id="bExport" style="margin-left:8px">Export data</button> <button class="btn sm primary" data-ro-ok id="bResub">Resubscribe</button></div>`:''}
   <div class="card" style="margin-top:16px"><h2>Aircraft</h2>
     <div class="tbl"><div class="tbl-scroll"><table class="bill-t" id="bItems"><thead><tr><th>Tail</th><th>Aircraft</th><th>Tier</th><th class="num">/mo</th><th></th></tr></thead><tbody>${items.map(i=>itemRow(i,'id')).join('')}</tbody>
     <tfoot><tr><td colspan="3"><b>Monthly total</b></td><td class="num"><b>${money0(tot)}</b></td><td></td></tr></tfoot></table></div></div>
@@ -196,7 +197,7 @@ VA.views.billing=function(el){
     ${sub.invoices.length?`<div class="tbl"><div class="tbl-scroll"><table class="bill-t" id="bInv"><thead><tr><th>Invoice</th><th>Date</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead><tbody>${sub.invoices.map((v,k)=>`<tr><td class="mono">${esc(v.id)}</td><td>${fmtDate(v.date)}</td><td class="num">${money2(v.amount)}</td><td><span class="chip ok">Paid</span></td><td class="num"><button class="btn sm ghost" data-ro-ok data-inv="${k}">View</button></td></tr>`).join('')}</tbody></table></div></div>`
       :`<div class="empty small">None yet.</div>`}
   </div>
-  ${sub.status==='active'?`<div class="row" style="margin-top:16px"><span class="spacer"></span><button class="btn ghost danger-t" id="bCancel">Cancel subscription</button></div>`:''}`;
+  `;
   B.lastNote=null;
   const redraw=()=>VA.views.billing(el);
   $$('#bItems [data-rm]',el).forEach(b=>b.onclick=()=>VA.confirmArchive(b.dataset.rm,()=>{VA.route()}));
@@ -204,13 +205,25 @@ VA.views.billing=function(el){
   $('#bPay',el).onclick=()=>VA.modal('Update payment method',`<div class="sim-banner" role="note"><b>Demo: nothing is collected.</b> Production opens the provider’s hosted page.</div>`,
     `<button class="btn" data-close>Cancel</button><button class="btn primary" data-ro-ok id="payGo">Simulate update</button>`,m=>{$('#payGo',m.parentElement).onclick=()=>{sub.payment={label:'Demo payment method',updated:today()};B.save(sub);VA.closeModal();VA.toast('Payment method updated (demo)','ok');redraw()}});
   $$('[data-inv]',el).forEach(b=>b.onclick=()=>{const v=sub.invoices[+b.dataset.inv];VA.modal(`Invoice ${v.id}`,`<div class="inv-brand"><img src="brand/hill-systems-logo-sm.png" alt="Hill Systems"><span class="small dim">Valkyr360 by Hill Systems</span></div><p class="small dim"><span class="demo-tag">DEMO</span> ${esc(v.period)}</p><table class="bill-t"><tbody>${v.lines.map(l=>`<tr><td>${esc(l.desc)}</td><td class="num">${money2(l.amount)}</td></tr>`).join('')}</tbody><tfoot><tr><td><b>Total</b></td><td class="num"><b>${money2(v.amount)}</b></td></tr></tfoot></table><p class="inv-copy">© 2026 Hill Systems. All rights reserved.</p>`,`<button class="btn" data-ro-ok id="invPrint">Print</button><button class="btn" data-close>Close</button>`,m=>{$('#invPrint',m.parentElement).onclick=()=>{document.body.classList.add('print-invoice');window.print();setTimeout(()=>document.body.classList.remove('print-invoice'),300)}})});
-  const cb=$('#bCancel',el);if(cb)cb.onclick=()=>VA.modal('Cancel subscription?',`<p style="margin-top:0">Ends ${fmtDate(c.next)}. Full access until then; after that your records stay read-only and exportable. No further charges.</p>`,
-    `<button class="btn" data-close>Keep subscription</button><button class="btn danger" id="cancelGo">Cancel subscription</button>`,m=>{$('#cancelGo',m.parentElement).onclick=()=>{sub.status='canceling';sub.cancelAt=c.next;sub.canceledOn=today();B.save(sub);VA.closeModal();VA.toast(`Subscription ends ${fmtDate(c.next)}`,'ok');VA.route()}});
-  const rs=$('#bResume',el);if(rs)rs.onclick=()=>{sub.status='active';delete sub.cancelAt;B.save(sub);VA.toast('Subscription kept','ok');VA.route()};
-  const ex=$('#bExport',el);if(ex)ex.onclick=()=>VA.exportAll();
-  const rb=$('#bResub',el);if(rb)rb.onclick=()=>{const t=today();Object.assign(sub,{status:'active',anchor:t,trialEnds:t,created:t,adjustments:[]});delete sub.cancelAt;B.save(sub);VA.toast('Subscription active (demo)','ok');VA.route()};
   return {title:'Billing'};
 };
+/* ---------- Settings › Subscription (owner only) ---------- */
+const set0=VA.views.settings;
+VA.views.settings=function(el,args){const r=set0(el,args)||{};const sub=VA.state().role==='owner'&&A.session()?B.get():null;
+  if(sub){const c=cycle(sub),tot=total();
+    const line=sub.status==='suspended'?'Suspended · read-only':sub.status==='canceled'?`Canceled ${fmtDate(sub.cancelAt)} · read-only`:sub.status==='canceling'?`Ends ${fmtDate(sub.cancelAt)}`:`Active · ${money0(tot)}/mo · ${c.trial?'trial until '+fmtDate(sub.trialEnds):'next invoice '+fmtDate(c.next)}`;
+    const btns=sub.status==='active'?`<button class="btn ghost danger-t" id="sCancel">Cancel subscription</button>`
+      :sub.status==='canceling'?`<button class="btn" id="sResume">Keep subscription</button>`
+      :sub.status==='suspended'?`<button class="btn" data-ro-ok id="sExport">Export data</button>`
+      :`<button class="btn" data-ro-ok id="sExport">Export data</button><button class="btn primary" data-ro-ok id="sResub">Resubscribe</button>`;
+    el.insertAdjacentHTML('afterbegin',`<section class="card sub-card" id="subCard" style="margin-bottom:18px"><h2>Subscription</h2><div class="row"><span id="subStatus" class="${sub.status==='active'?'ok-t':sub.status==='canceling'?'warn-t':'bad-t'}">${line}</span><span class="spacer"></span><a href="#/billing" class="small">Billing</a>${btns}</div></section>`);
+    const on=(id,f)=>{const b=$('#'+id,el);if(b)b.onclick=f};
+    on('sCancel',()=>VA.modal('Cancel subscription?',`<p style="margin-top:0">Ends ${fmtDate(c.next)}. Full access until then, then read-only and exportable. No further charges.</p>`,
+      `<button class="btn" data-close>Keep subscription</button><button class="btn danger" id="cancelGo">Cancel subscription</button>`,m=>{$('#cancelGo',m.parentElement).onclick=()=>{sub.status='canceling';sub.cancelAt=c.next;sub.canceledOn=today();B.save(sub);VA.closeModal();VA.toast(`Subscription ends ${fmtDate(c.next)}`,'ok');VA.route()}}));
+    on('sResume',()=>{sub.status='active';delete sub.cancelAt;B.save(sub);VA.toast('Subscription kept','ok');VA.route()});
+    on('sExport',()=>VA.exportAll());
+    on('sResub',()=>{const t=today();Object.assign(sub,{status:'active',anchor:t,trialEnds:t,created:t,adjustments:[]});delete sub.cancelAt;B.save(sub);VA.toast('Subscription active (demo)','ok');VA.route()});}
+  r.title='Settings';return r};
 /* ---------- onboarding for a new account's own fleet ---------- */
 const fleet0=VA.views.fleet;
 VA.views.fleet=function(el,args){const r=fleet0(el,args);const S=VA.state();

@@ -20,6 +20,12 @@ Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password,
 
 The demo fleet costs $527/mo ($6,324/yr). Mechanics are always free, there are no setup fees, and billing is month-to-month. Competitor line: $7,000–$20,700/yr for 3 aircraft.
 
+## Admin console (DEMO)
+- Sign-in › **Admin demo** signs in as a Hill Systems platform admin (`admin@hillsystems.demo`, role `platform`, separate from operator roles). Admins see only `#/admin`; operators can't open it.
+- Operator list: search, status filter, sort, paginated, no row cap. Columns: operator, owner email, status (trial, active, past due, canceled, suspended), aircraft by tier, monthly total, signup, last active. Totals: operators, aircraft, MRR (active + past due), trials.
+- Data: the demo operator, every account created in this browser (its own IndexedDB fleet), and 9 seeded operators labelled (DEMO).
+- Operator detail: fleet, billing history, and Suspend/Restore (suspended = read-only), Extend trial, Credit/comp, View as operator (read-only, bannered, Exit returns to Admin). Each action confirms first and is written to the audit log (`localStorage va.admin`).
+- Production design: ARCHITECTURE.md §17.
 ## Files
 - `index.html`, `styles.css`
 - `db.js` (IndexedDB data-access layer), `data.js` (seed), `app.js` (state, airworthiness engine, ledger, routing), `list.js` (generic list control)
@@ -29,6 +35,7 @@ The demo fleet costs $527/mo ($6,324/yr). Mechanics are always free, there are n
 - `data/` — FAA-derived data, built by `tools/build_faa.py` from ReleasableAircraft.zip (owner names/addresses excluded). `faa-version.js` holds the dataset version and SHA-256 hashes.
 - `vendor/fflate.min.js` (MIT)
 - `samples/` — DEMO avionics files, CSVs, `demo-sd-card.zip`, and `faa-update-SIMULATED-2026-10-23.json`. Regenerate with `node tools/make_samples.js` and `node tools/make_faa_update.js`.
+- `admin.js` — platform admin console (DEMO)
 - `test/app.test.js` — headless end-to-end tests, perf numbers and screenshots. Results go to `test/perf-results.json`.
 - `ARCHITECTURE.md` — production design, data sources and citations, format matrix, FAA/AD sync, and the cost estimate.
 
@@ -77,4 +84,4 @@ Speed-ups in the polish pass: index `getAll` batches instead of per-row cursors;
 - The header avatar menu holds **View as** (owner, pilot, mechanic), **Account**, **Billing** (owners only) and **Sign out**.
 - Billing shows the plan per aircraft, the monthly total, the next invoice, demo invoices, a simulated payment-method update, and add/remove aircraft with a proration note.
 - Accounts are stored only in this browser. Passwords are never stored, only a salted PBKDF2-SHA-256 hash (WebCrypto). No third-party sign-in or payment branding. Production auth and billing: ARCHITECTURE.md §15–16.
-- Each account has its own data (a separate IndexedDB scope). The fleet is the bill: adding an aircraft anywhere bills it, archiving removes it with a proration note, and at least one aircraft stays. There is no aircraft cap. Cancel subscription: full access until the period ends, then read-only and exportable.
+- Each account has its own data (a separate IndexedDB scope). The fleet is the bill: adding an aircraft anywhere bills it, archiving removes it with a proration note, and at least one aircraft stays. There is no aircraft cap. **Settings › Subscription** (owners only) shows plan status and holds Cancel subscription: full access until the period ends, then read-only and exportable, with Resubscribe. Billing links to it.

@@ -19,7 +19,7 @@ VA.seedStandard=async function(){
   if(sr){sr.eng.cht=466;S.squawks.unshift({id:uid('s'),ac:'sr22',title:'Engine exceedance: CHT 466 °F (limit 460 °F)',desc:`Auto-detected from engine data on ${sr.from} → ${sr.to} (${sr.date}). Rising CHT trend over the last ~40 days — suggest baffle / injector inspection. Draft — needs mechanic review.`,by:'system',date:sr.date,grounding:false,status:'draft',auto:true,flight:sr.id})}
   await DAL.clearAll();await DAL.addLogs([...logbook,...fl]);await DAL.putExpenses(hist.expenses);await VA.flush();
 };
-VA.reset=async()=>{if(VA.isAccount&&VA.isAccount())return;await VA.seedStandard();toast('Demo data reset','ok');route()};
+VA.reset=async()=>{if(VA.isAccount&&VA.isAccount())return;{const ss=VA.auth&&VA.auth.session();if(ss&&(ss.platform||ss.impersonatedBy))return}await VA.seedStandard();toast('Demo data reset','ok');route()};
 /* cached lookups (rebuilt lazily after any mutation) */
 let cache=null;
 VA.dirty=()=>{cache=null};
@@ -46,7 +46,7 @@ Object.assign(VA,{$,$$,esc,todayISO,parse,isoOf,addMonths,addDays,daysBetween,fm
 /* ---------- lookups ---------- */
 VA.ac=id=>C().ac.get(id)||C().arch.get(id); /* archived aircraft still resolve for history rows (logbook, expenses) */
 VA.person=id=>id==='system'?{name:'Valkyr engine monitor',initials:'VA'}:C().people.get(id)||{name:'—',initials:'?'};
-VA.me=()=>S.people.find(p=>p.role===S.role);
+VA.me=()=>S.people.find(p=>p.role===S.role)||{id:'p_platform',name:'Hill Systems Admin',title:'Platform admin',initials:'HS'};
 VA.pilots=()=>S.people.filter(p=>p.role!=='mechanic'||true);
 
 /* ---------- airworthiness engine ---------- */
@@ -217,11 +217,13 @@ const NAV=[
   {h:'engine',label:'Engine trends',icon:'pulse',roles:['owner','pilot','mechanic']},
   {h:'costs',label:'Costs',icon:'cost',roles:['owner']},
   {h:'integrations',label:'Integrations',icon:'plug',roles:['owner','mechanic']},
-  {h:'settings',label:'Data sources',icon:'sync',roles:['owner','mechanic']},
-  {h:'plans',label:'Plans',icon:'card',roles:['owner']}
+  {h:'settings',label:'Settings',icon:'sync',roles:['owner','mechanic']},
+  {h:'plans',label:'Plans',icon:'card',roles:['owner']},
+  {h:'admin',label:'Admin',icon:'card',roles:['platform']}
 ];
-const EXTRA=[{h:'billing',roles:['owner']}]; /* routes reached from the account menu, not the nav */
-VA.canSee=h=>{const n=NAV.find(x=>x.h===h)||EXTRA.find(x=>x.h===h);return !n||n.roles.includes(S.role)};
+const EXTRA=[{h:'billing',roles:['owner']}];
+VA.home=()=>S&&S.role==='platform'?'admin':'fleet'; /* routes reached from the account menu, not the nav */
+VA.canSee=h=>{if(S.role==='platform')return h==='admin';if(h==='admin')return false;const n=NAV.find(x=>x.h===h)||EXTRA.find(x=>x.h===h);return !n||n.roles.includes(S.role)};
 function renderChrome(cur){
   const open=S.squawks.filter(q=>q.status==='open').length;
   const items=NAV.filter(n=>n.roles.includes(S.role));
@@ -236,12 +238,12 @@ function route(){
   if(VA.switching)return;
   if(VA.auth&&!VA.auth.session()){if(!document.getElementById('auth'))VA.auth.show();return}
   if(!S)return;
-  const raw=location.hash.replace(/^#\/?/,'')||'fleet';const [path,qs]=raw.split('?');
+  const raw=location.hash.replace(/^#\/?/,'')||VA.home();const [path,qs]=raw.split('?');
   VA.query=new URLSearchParams(qs||'');
   const parts=(path||'fleet').split('/');
   let view=parts[0];
-  if(!VA.views[view])view='fleet';
-  if(!VA.canSee(view)){location.hash='#/fleet';return}
+  if(!VA.views[view])view=VA.home();
+  if(!VA.canSee(view)){location.hash='#/'+VA.home();return}
   renderChrome(view==='aircraft'?'fleet':view);
   const v=$('#view');v.style.animation='none';v.offsetHeight;v.style.animation='';
   const t0=performance.now();

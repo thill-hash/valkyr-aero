@@ -396,3 +396,33 @@ type BillingEvent =
   - **Gateways (we own the subscription logic and tax engine):** Braintree, Square, Authorize.net, Helcim.
   - **Subscription layers over a gateway (proration, dunning and invoicing out of the box):** Chargebee, Recurly.
   - Recommendation for v1: a merchant of record, because tax and fewer moving parts matter more for owner-operators and flight departments. Keep the adapter so a later move to a gateway plus tax engine doesn't reach the domain model.
+
+**Cancel (prototype).** Owners cancel in Settings › Subscription. Access continues to the period end, then the account is read-only and exportable until resubscribed. Server-side: `subscriptions.cancel_at_period_end`, enforced by the API, not the UI.
+
+## 17. Platform admin console
+
+**What the prototype does (DEMO only).** `#/admin` for a `platform` session (Sign-in › Admin demo). It lists the demo operator, accounts in this browser and 9 seeded DEMO operators; detail shows fleet and billing history with Suspend/Restore, Extend trial, Credit/comp and View as operator. Each action confirms and is audited in `localStorage va.admin`. View as operator parks the admin session in `sessionStorage`, opens the operator's data read-only with a banner, and Exit restores it. In production none of this runs in the browser.
+
+**Staff roles (separate from operator roles).**
+- Staff identities live in a separate `staff_users` table, signed in through company SSO with hardware-key MFA. They never appear in `memberships`, and an operator role can't be escalated to a staff role.
+- Roles: `support_readonly` (list, detail), `support` (+ extend trial, view as operator), `billing_admin` (+ credits, refunds), `platform_admin` (+ suspend/restore, staff management). Least privilege by default; reviewed quarterly.
+- Staff sessions: short-lived (≤ 8 h), IP allow-list or device posture check, re-auth for destructive actions.
+
+**Cross-tenant admin API.**
+- Separate service and host (`admin.api.…`), not reachable with operator tokens; tokens carry `aud=admin` and staff role claims.
+- `GET /admin/operators?q=&status=&sort=&cursor=` (paginated, server-side search; no row cap), `GET /admin/operators/{id}` (fleet, subscription, invoices from our DB), `POST /admin/operators/{id}/suspend|restore|extend-trial|credit`, `POST /admin/operators/{id}/impersonation`.
+- Metrics (MRR, trials, aircraft) come from a nightly + incremental rollup, not by scanning tenant data per request.
+- Row-level security still applies: admin queries run as a dedicated DB role with explicit cross-tenant grants on the tables it needs; PII (owner contact, documents) is masked unless the role needs it.
+- Every mutating call requires a reason string and an `Idempotency-Key`. Credits above a threshold need a second approver. Billing actions go through the billing service (§16) so the processor and our DB stay consistent.
+- Suspension sets `orgs.status=suspended`; the operator API then rejects writes (HTTP 423) and keeps reads and export.
+
+**Audit.**
+- Append-only `admin_audit(id, at, staff_id, staff_role, org_id, action, reason, params_json, ip, user_agent, request_id)`, written in the same transaction as the change, streamed to WORM storage, never editable by staff.
+- Shown to admins in the console and to the operator owner as "Hill Systems support accessed your account on …" for impersonation and account changes.
+
+**Impersonation safeguards.**
+- Read-only by default: a scoped token (`act=impersonate`, `sub=staff`, `org=…`, ≤ 30 min, non-renewable) the operator API accepts only for GET.
+- Requires a reason (ticket ID); optional operator consent setting for sensitive tenants.
+- Persistent banner and one-click exit; no access to passwords, MFA, payment methods or API keys; can't change roles or billing.
+- Each session start/end and every request is logged with the staff ID and correlates to the audit row; alerts on unusual volume.
+
