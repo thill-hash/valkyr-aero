@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin sign-in · Hill Systems</title>
+<link rel="icon" href="../brand/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../brand/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../brand/apple-touch-icon.png">
+<meta name="description" content="Aircraft management, simplified.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Valkyr360 by Hill Systems">
+<meta property="og:title" content="Admin · Valkyr360 by Hill Systems">
+<meta property="og:description" content="Aircraft management, simplified.">
+<meta property="og:url" content="https://valkyr360.com/admin/">
+<meta property="og:image" content="https://valkyr360.com/brand/og-image.png">
+<meta property="og:image:secure_url" content="https://valkyr360.com/brand/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Valkyr360 by Hill Systems">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Valkyr360 by Hill Systems">
+<meta name="twitter:description" content="Aircraft management, simplified.">
+<meta name="twitter:image" content="https://valkyr360.com/brand/og-image.png">
+<meta name="twitter:image:alt" content="Valkyr360 by Hill Systems">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#f3f4f6;color:#111827;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.card{width:100%;max-width:360px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:28px 24px}
+.logo{display:block;height:36px;width:auto;margin:0 0 20px}
+h1{font-size:20px;font-weight:600;margin:0 0 18px}
+label{display:block;font-size:13px;font-weight:500;margin:0 0 14px;color:#374151}
+input{display:block;width:100%;margin-top:6px;padding:9px 10px;font:inherit;color:#111827;background:#fff;border:1px solid #d1d5db;border-radius:6px}
+input:focus{outline:2px solid #2563eb;outline-offset:0;border-color:#2563eb}
+input[aria-invalid=true]{border-color:#dc2626}
+button{font:inherit;cursor:pointer}
+.submit{width:100%;padding:10px;border:0;border-radius:6px;background:#111827;color:#fff;font-weight:600}
+.submit:disabled{opacity:.6;cursor:wait}
+.err{margin:0 0 14px;padding:8px 10px;border-radius:6px;background:#fef2f2;color:#991b1b;font-size:13px}
+.demo{margin-top:16px;padding-top:14px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.demo button{background:none;border:0;padding:0;color:#2563eb;font-size:12px;text-decoration:underline}
+</style>
+</head>
+<body>
+<main>
+<section class="card" aria-labelledby="h">
+  <img class="logo" src="../brand/hill-systems-logo-print.png" alt="Hill Systems">
+  <h1 id="h">Admin</h1>
+  <form id="adminForm" novalidate>
+    <div class="err" id="adminErr" role="alert" hidden></div>
+    <label>Email<input name="email" type="email" autocomplete="username" inputmode="email" required></label>
+    <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="submit" id="adminBtn" type="submit">Sign in</button>
+  </form>
+  <div class="demo"><span>Demo</span><button type="button" id="adminFill">Fill demo admin</button></div>
+</section>
+</main>
+<script src="../staff.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

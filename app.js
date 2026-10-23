@@ -236,6 +236,7 @@ function renderChrome(cur){
 }
 function route(){
   if(VA.switching)return;
+  if(VA.auth&&VA.auth.isAdminHash(location.hash)!==(VA.auth.MODE==='admin')){VA.switching=true;location.reload();return}
   if(VA.auth&&!VA.auth.session()){if(!document.getElementById('auth'))VA.auth.show();return}
   if(!S)return;
   const raw=location.hash.replace(/^#\/?/,'')||VA.home();const [path,qs]=raw.split('?');

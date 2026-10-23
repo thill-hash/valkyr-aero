@@ -185,9 +185,9 @@ Unknown files get: *"Unsupported CSV layout — send us a sample and we will add
 | **Experimental & warbirds** (confirmed by Trevor): MASTER CERTIFICATION class 4 Experimental — every purpose (amateur-built 2, exhibition 3, racing 4, R&D 1, kit-built 7, light-sport 8A/8B/8C …) — **or** class 2 **Limited** (most ex-military warbirds) **or** a known warbird type (L-29/39/59, T-33, MiG, F-86, Hunter, Vampire, Jet Provost, Strikemaster, Magister, T-37/A-37, P-51, P-38, P-40, P-47, F4U, F6F, Spitfire, B-17/24/25, A-26, T-28 …) **or**, without a registration, ACFTREF BUILD-CERT-IND 1. Overrides the jet / turboprop / twin tiers. No review flag | Experimental & warbirds, flat regardless of engine count/type | $29 |
 | TYPE-ACFT 6 (rotorcraft), TYPE-ENG turboshaft/turbo* | Turbine helicopter | $149 |
 | TYPE-ACFT 6 (rotorcraft), reciprocating | Piston helicopter | $49 |
-| TYPE-ENG turbo-jet/turbo-fan, AC-WEIGHT CLASS 3 (≥ 20,000 lb) | Midsize / heavy jet | $399 |
-| turbo-jet/fan, class 1–2 | Light jet (class 2 flagged) | $299 |
-| turbo-prop / turbo-shaft fixed-wing | Turboprop | $249 |
+| TYPE-ENG turbo-jet/turbo-fan, AC-WEIGHT CLASS 3 (≥ 20,000 lb) | Midsize / heavy jet | $299 |
+| turbo-jet/fan, class 1–2 | Light jet (class 2 flagged) | $199 |
+| turbo-prop / turbo-shaft fixed-wing | Turboprop | $149 |
 | piston, ≥ 2 engines, model in heavy list (Baron, Navajo, 310–421, Aerostar…) or ≥ 8 seats | Heavy piston twin (heuristic, flagged) | $149 |
 | piston, ≥ 2 engines, otherwise | Light twin | $49 |
 | piston single (incl. special light-sport class 9 — S-LSA is not experimental) | Single | $29 |
@@ -329,9 +329,9 @@ Prototype: the SIMULATED delta carries five fictitious ADs (airframe + serial ra
 | Piston helicopter | $49 |
 | Heavy piston twin | $149 |
 | Turbine helicopter | $149 |
-| Turboprop | $249 |
-| Light jet | $299 |
-| Midsize/heavy jet | $399 |
+| Turboprop | $149 |
+| Light jet | $199 |
+| Midsize/heavy jet | $299 |
 | Experimental & warbirds | $29 |
 
 **Source of truth is our database, not the processor.**
@@ -401,11 +401,12 @@ type BillingEvent =
 
 ## 17. Platform admin console
 
-**What the prototype does (DEMO only).** `#/admin` for a `platform` session (Sign-in › Admin demo). It lists the demo operator, accounts in this browser and 9 seeded DEMO operators; detail shows fleet and billing history with Suspend/Restore, Extend trial, Credit/comp and View as operator. Each action confirms and is audited in `localStorage va.admin`. View as operator parks the admin session in `sessionStorage`, opens the operator's data read-only with a banner, and Exit restores it. In production none of this runs in the browser.
+**What the prototype does (DEMO only).** `#/admin` for a `platform` session, signed in at its own page `/admin/` (staff accounts in `staff.js`; operator accounts rejected there, staff rejected on the customer sign-in). Admin and operator sessions are separate storage slots; the page runs in one mode and crossing between `#/admin` and operator routes reloads. It lists the demo operator, accounts in this browser and 9 seeded DEMO operators; detail shows fleet and billing history with Suspend/Restore, Extend trial, Credit/comp and View as operator. Each action confirms and is audited in `localStorage va.admin`. View as operator uses a tab-only slot (`sessionStorage va.imp`), opens the operator's data read-only with a banner, and Exit returns to the console; neither real session is touched. In production none of this runs in the browser.
 
 **Staff roles (separate from operator roles).**
 - Staff identities live in a separate `staff_users` table, signed in through company SSO with hardware-key MFA. They never appear in `memberships`, and an operator role can't be escalated to a staff role.
 - Roles: `support_readonly` (list, detail), `support` (+ extend trial, view as operator), `billing_admin` (+ credits, refunds), `platform_admin` (+ suspend/restore, staff management). Least privilege by default; reviewed quarterly.
+- Separate sign-in surface (`admin.valkyr360.com` behind SSO; the prototype's `/admin/` stands in). Staff cookies are scoped to the admin host, so an operator session and a staff session never share a cookie or token.
 - Staff sessions: short-lived (≤ 8 h), IP allow-list or device posture check, re-auth for destructive actions.
 
 **Cross-tenant admin API.**

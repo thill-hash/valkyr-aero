@@ -7,7 +7,6 @@
 const {$,$$,esc}=VA;
 const ACC='va.accounts',SES='va.session',ITER=150000;
 const ROLES=[['owner','Owner','Fleet, costs, plans and billing'],['pilot','Pilot','Schedule, log flights, squawks'],['mechanic','Mechanic','Maintenance, squawks, sign-offs']];
-const ADMIN={uid:'platform-admin',email:'admin@hillsystems.demo',name:'Hill Systems Admin',org:'Hill Systems (DEMO)',role:'platform',platform:true};
 const DEMO={uid:'demo',email:'demo@valkyr-aero.demo',name:'Trevor Hill',org:'Valkyr360 Demo Flight Dept (DEMO)',role:'owner',demo:true};
 const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -19,12 +18,19 @@ const saveAccounts=a=>localStorage.setItem(ACC,JSON.stringify(a));
 const normEmail=e=>String(e||'').trim().toLowerCase();
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
-function session(){try{return JSON.parse(localStorage.getItem(SES)||sessionStorage.getItem(SES)||'null')}catch(e){return null}}
+/* Two separate session slots: the admin console (#/admin…, va.admin.session via staff.js) and the operator app (va.session).
+   The page runs in one mode, fixed at load; crossing between them reloads. "View as operator" uses a tab-only slot (va.imp). */
+const IMP='va.imp';const STAFF=window.VA_STAFF;
+const isAdminHash=h=>/^#\/admin(\/|$)/.test(h||'');
+const MODE=isAdminHash(location.hash)?'admin':'app';
+const ADMIN_URL=()=>location.protocol==='file:'?'admin/index.html':'admin/';
+function opSession(){try{const s=JSON.parse(localStorage.getItem(SES)||sessionStorage.getItem(SES)||'null');return s&&!s.platform?s:null}catch(e){return null}}
+function session(){if(MODE==='admin')return STAFF?STAFF.session():null;try{const i=JSON.parse(sessionStorage.getItem(IMP)||'null');if(i)return i}catch(e){}return opSession()}
 function setSession(s,remember){localStorage.removeItem(SES);sessionStorage.removeItem(SES);if(s)(remember?localStorage:sessionStorage).setItem(SES,JSON.stringify(s))}
-function updateSession(patch){const s=session();if(!s)return;const rem=!!localStorage.getItem(SES);setSession({...s,...patch},rem)}
+function updateSession(patch){const s=opSession();if(!s)return;const rem=!!localStorage.getItem(SES);setSession({...s,...patch},rem)}
 
 const scopeOf=s=>s&&!s.demo&&!s.platform&&s.uid?'valkyr-aero-'+s.uid:'valkyr-aero';
-const A=VA.auth={ROLES,session,accounts,
+const A=VA.auth={ROLES,session,accounts,MODE,isAdminHash,adminUrl:ADMIN_URL,
   scope(){return scopeOf(session())},
   /* create: returns {ok}|{field,msg} */
   check({name,email,password,org}){
@@ -52,8 +58,8 @@ const A=VA.auth={ROLES,session,accounts,
   async verify(email,password){email=normEmail(email);const a=accounts().find(x=>x.email===email);
     if(!a||!hasCrypto()){if(hasCrypto())await hashPw(String(password||'x'),new Uint8Array(16),2000);return null}
     const h=await hashPw(String(password||''),unb64(a.salt),a.iter||ITER);return h===a.hash?a:null},
-  begin(acct,remember){const s=acct.platform?{...ADMIN}:acct.demo?{...DEMO,role:acct.role||'owner'}:{uid:acct.id,email:acct.email,name:acct.name,org:acct.org,role:acct.role||'owner',demo:false};
-    if(!acct.platform&&!acct.demo){const l=accounts();const x=l.find(y=>y.id===acct.id);if(x){x.lastActive=new Date().toISOString();saveAccounts(l)}}
+  begin(acct,remember){if(acct.platform||acct.role==='platform')return;const s=acct.demo?{...DEMO,role:acct.role||'owner'}:{uid:acct.id,email:acct.email,name:acct.name,org:acct.org,role:acct.role||'owner',demo:false};
+    if(!acct.demo){const l=accounts();const x=l.find(y=>y.id===acct.id);if(x){x.lastActive=new Date().toISOString();saveAccounts(l)}}
     s.initials=initials(s.name);s.at=new Date().toISOString();setSession(s,remember);
     /* each account has its own IndexedDB scope; switching scope = reload into the other database */
     if(VA.scopeLoaded&&scopeOf(s)!==VA.scopeLoaded){const want=A.pendingHash||location.hash||'#/fleet';A.pendingHash=null;VA.switching=true;history.replaceState(null,'',location.pathname+location.search+want);location.reload();return}
@@ -62,17 +68,17 @@ const A=VA.auth={ROLES,session,accounts,
     if(want&&want!==location.hash)location.hash=want;else VA.route();
     VA.toast(`Signed in as <b>${esc(s.name)}</b> · ${esc(roleLabel(s.role))}`,'ok')},
   demo(role='owner'){A.begin({demo:true,role},true)},
-  adminDemo(){A.pendingHash='#/admin';A.begin({platform:true},true)},
-  /* platform admin: open an operator read-only; the admin session is parked in sessionStorage */
-  impersonate(op){const me=session();if(!me||!me.platform)return;sessionStorage.setItem('va.admin.return',JSON.stringify(me));
+  /* platform admin: open an operator read-only in this tab; the admin and operator sessions are left untouched */
+  impersonate(op){const me=session();if(MODE!=='admin'||!me||!me.platform)return;
     const s={uid:op.uid,demo:op.uid==='demo',email:op.email,name:op.owner||op.email,org:op.name,role:'owner',initials:initials(op.owner||op.name),impersonatedBy:me.email,at:new Date().toISOString()};
-    localStorage.removeItem(SES);sessionStorage.setItem(SES,JSON.stringify(s));VA.switching=true;history.replaceState(null,'',location.pathname+location.search+'#/fleet');location.reload()},
-  exitImpersonation(){const r=sessionStorage.getItem('va.admin.return');sessionStorage.removeItem('va.admin.return');sessionStorage.removeItem(SES);if(r)localStorage.setItem(SES,r);
-    VA.switching=true;history.replaceState(null,'',location.pathname+location.search+'#/admin');location.reload()},
+    sessionStorage.setItem(IMP,JSON.stringify(s));reloadTo('#/fleet')},
+  exitImpersonation(){sessionStorage.removeItem(IMP);reloadTo('#/admin')},
   setRole(r){if(!ROLES.some(x=>x[0]===r))return;{const ss=session();if(ss&&(ss.platform||ss.impersonatedBy))return}updateSession({role:r});const S=VA.state();S.role=r;VA.save()},
-  signOut(){setSession(null);A.draft=null;closeMenu();VA.closeModal();A.pendingHash=null;show('signin');VA.toast('Signed out','ok')},
+  signOut(){if(MODE==='admin'){STAFF&&STAFF.end();VA.switching=true;location.replace(ADMIN_URL());return}
+    sessionStorage.removeItem(IMP);setSession(null);A.draft=null;closeMenu();VA.closeModal();A.pendingHash=null;show('signin');VA.toast('Signed out','ok')},
   show,hide
 };
+function reloadTo(h){VA.switching=true;history.replaceState(null,'',location.pathname+location.search+h);location.reload()}
 const roleLabel=r=>r==='platform'?'Platform admin':(ROLES.find(x=>x[0]===r)||ROLES[0])[1];
 A.roleLabel=roleLabel;
 
@@ -90,7 +96,7 @@ const STEPS=['Account','Aircraft','Plan','Checkout'];
 const steps=i=>`<ol class="auth-steps" aria-label="Sign-up steps">${STEPS.map((x,k)=>`<li class="${k<i?'done':k===i?'on':''}" ${k===i?'aria-current="step"':''}><span>${k+1}</span>${x}</li>`).join('')}</ol>`;
 A.steps=steps;A.shell=shell;
 const VIEWS=A.VIEWS={
-  signin:()=>shell(`<h1 id="authH" class="auth-head">The flight department in a box.</h1>
+  signin:()=>shell(`<h1 id="authH" class="auth-head">Aircraft management, simplified.</h1>
     <form class="form auth-form" id="signinForm" novalidate>
       ${field('email','Email','email','autocomplete="username" inputmode="email" required')}
       <label class="f">Password<span class="pw"><input name="password" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" aria-label="Show password" data-eye>Show</button></span></label>
@@ -99,7 +105,7 @@ const VIEWS=A.VIEWS={
       <button class="btn primary auth-submit" id="signinBtn" type="submit">Sign in</button>
     </form>
     <button class="btn auth-submit auth-demo" id="authDemo" type="button">Explore the demo</button>
-    <p class="auth-alt"><button type="button" class="link-btn" id="authCreate">Create account</button> · <button type="button" class="link-btn" id="authAdmin">Admin demo</button></p>`),
+    <p class="auth-alt"><button type="button" class="link-btn" id="authCreate">Create account</button></p>`),
   create:()=>shell(`${steps(0)}<h1 id="authH">Create account</h1>
     <form class="form auth-form" id="createForm" novalidate>
       ${field('name','Name','text','autocomplete="name" required value="'+esc(A.draft&&A.draft.name||'')+'"')}
@@ -121,6 +127,7 @@ const VIEWS=A.VIEWS={
     <button class="btn auth-submit" id="authBack" type="button">Back</button></div>`)
 };
 function show(view='signin',arg){
+  if(MODE==='admin'){VA.switching=true;location.replace(ADMIN_URL());return}
   if(!A.pendingHash&&location.hash&&!/^#\/?(fleet)?$/.test(location.hash))A.pendingHash=location.hash;
   let el=$('#auth');if(!el){el=document.createElement('div');el.id='auth';el.className='auth';document.body.appendChild(el)}
   document.body.classList.add('signed-out');el.innerHTML=VIEWS[view](arg);el.dataset.view=view;
@@ -135,12 +142,13 @@ function busy(btn,on,txt){btn.disabled=on;if(on){btn.dataset.t=btn.textContent;b
 function wire(el,view){
   $$('[data-eye]',el).forEach(b=>b.onclick=()=>{const i=b.previousElementSibling;const sh=i.type==='password';i.type=sh?'text':'password';b.textContent=sh?'Hide':'Show';b.setAttribute('aria-label',sh?'Hide password':'Show password')});
   const on=(id,fn)=>{const x=$('#'+id,el);if(x)x.onclick=fn};
-  on('authDemo',()=>A.demo('owner'));on('authAdmin',()=>A.adminDemo());$$('[data-demo]',el).forEach(b=>b.onclick=()=>A.demo(b.dataset.demo));
+  on('authDemo',()=>A.demo('owner'));$$('[data-demo]',el).forEach(b=>b.onclick=()=>A.demo(b.dataset.demo));
   on('authForgot',()=>show('forgot'));on('authCreate',()=>show('create'));on('authBack',()=>show('signin'));
   const sf=$('#signinForm',el);if(sf)sf.onsubmit=async e=>{e.preventDefault();const err=$('#authErr',el);err.hidden=true;
     const email=sf.email.value,pw=sf.password.value;
     if(!EMAIL.test(normEmail(email)))return bad(sf,'email','Enter the email you signed up with');
     if(!pw)return bad(sf,'password','Enter your password');
+    if(STAFF&&STAFF.find(email)){err.textContent='Admin accounts can’t sign in here.';err.hidden=false;sf.password.value='';return}
     const b=$('#signinBtn',el);busy(b,true,'Signing in…');const a=await A.verify(email,pw);busy(b,false);
     if(!a){err.textContent='That email and password don’t match an account in this browser.';err.hidden=false;sf.password.value='';sf.password.focus();return}
     A.begin(a,sf.remember.checked)};

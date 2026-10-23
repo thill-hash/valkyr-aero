@@ -1,6 +1,6 @@
 # Valkyr360 by Hill Systems — clickable prototype (DEMO)
 
-"The flight department in a box." Maintenance, costs, logs and documents in one place. Open `index.html` in Chrome/Edge/Safari — no server and no build step, and it works offline. Everything is **DEMO** data. The N-numbers N350VK / N612VK / N813ZK, and the large-dataset tails, were checked as **not** present in FAA MASTER, RESERVED or DEREG (2026-10-22).
+"Aircraft management, simplified." Maintenance, costs, logs and documents in one place. Open `index.html` in Chrome/Edge/Safari — no server and no build step, and it works offline. Everything is **DEMO** data. The N-numbers N350VK / N612VK / N813ZK, and the large-dataset tails, were checked as **not** present in FAA MASTER, RESERVED or DEREG (2026-10-22).
 
 ## Screens
 Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password, Create account) · Sign-up with billing (account → aircraft via FAA N-number lookup → plan + 14-day trial → simulated checkout) · Fleet · Aircraft detail · Schedule (blocks unairworthy aircraft) · Log flight (simulated ForeFlight, CSV import) · SD-card import (any avionics card or zip) · Maintenance (fleet due list) · Squawks (incl. auto-detected drafts) · Engine trends · Costs (tabs: Overview `#/costs`, Expenses `#/costs/expenses`, Report `#/costs/report`; old `#/expenses` and `#/tco` links redirect) · Integrations · Data sources (FAA registry versioning/updates, change review, AD feed) · Add aircraft (FAA N-number lookup + type library) · Plans.
@@ -8,9 +8,9 @@ Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password,
 ## Pricing (per aircraft per month)
 | Tier | Price |
 |---|---|
-| Midsize / heavy jets | $399 |
-| Light jets | $299 |
-| Turboprops | $249 |
+| Midsize / heavy jets | $299 |
+| Light jets | $199 |
+| Turboprops | $149 |
 | Turbine helicopters | $149 |
 | Heavy piston twins | $149 |
 | Piston helicopters | $49 |
@@ -18,10 +18,12 @@ Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password,
 | Single-engine pistons, gyroplanes, gliders, balloons | $29 |
 | Experimental & warbirds — $29 flat: homebuilt, racing, exhibition, every other experimental purpose, Limited category; any engine incl. jets (L-39, T-33, MiG, P-51) | $29 |
 
-The demo fleet costs $527/mo ($6,324/yr). Mechanics are always free, there are no setup fees, and billing is month-to-month. Competitor line: $7,000–$20,700/yr for 3 aircraft.
+The demo fleet costs $327/mo ($3,924/yr). Mechanics are always free, there are no setup fees, and billing is month-to-month. Competitor line: $7,000–$20,700/yr for 3 aircraft.
 
 ## Admin console (DEMO)
-- Sign-in › **Admin demo** signs in as a Hill Systems platform admin (`admin@hillsystems.demo`, role `platform`, separate from operator roles). Admins see only `#/admin`; operators can't open it.
+- Separate sign-in at **`/admin/`** (https://valkyr360.com/admin/; locally `admin/index.html`). The customer sign-in has no admin entry point.
+- Demo admin: **admin@hillsystems.demo** / **HillAdmin-demo1** (or "Fill demo admin" on the admin page). Role `platform`, separate from operator roles; stored as salt + PBKDF2 hash in `staff.js`.
+- Platform accounts sign in only at `/admin/`; operator accounts are rejected there, and the customer sign-in rejects platform accounts. The admin session (`va.admin.session`, 8 h) is separate from the operator session (`va.session`). Signing out of admin returns to `/admin/`; opening `#/admin` without an admin session goes there too. Admins see only `#/admin`.
 - Operator list: search, status filter, sort, paginated, no row cap. Columns: operator, owner email, status (trial, active, past due, canceled, suspended), aircraft by tier, monthly total, signup, last active. Totals: operators, aircraft, MRR (active + past due), trials.
 - Data: the demo operator, every account created in this browser (its own IndexedDB fleet), and 9 seeded operators labelled (DEMO).
 - Operator detail: fleet, billing history, and Suspend/Restore (suspended = read-only), Extend trial, Credit/comp, View as operator (read-only, bannered, Exit returns to Admin). Each action confirms first and is written to the audit log (`localStorage va.admin`).
@@ -33,9 +35,10 @@ The demo fleet costs $527/mo ($6,324/yr). Mechanics are always free, there are n
 - `gen.js` (history + large dataset generator), `csv.js` (CSV and Garmin import, exceedances)
 - `importer.js` (universal parser registry + Web Worker), `types.js` (FAA type library, tiers, templates), `faasync.js` (FAA versioning, deltas, reviews, AD matching)
 - `data/` — FAA-derived data, built by `tools/build_faa.py` from ReleasableAircraft.zip (owner names/addresses excluded). `faa-version.js` holds the dataset version and SHA-256 hashes.
+- `brand/` — Hill Systems logos, `og-image.png` (1200×630 link preview; Open Graph + Twitter card meta in `index.html`), `favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (180×180)
 - `vendor/fflate.min.js` (MIT)
 - `samples/` — DEMO avionics files, CSVs, `demo-sd-card.zip`, and `faa-update-SIMULATED-2026-10-23.json`. Regenerate with `node tools/make_samples.js` and `node tools/make_faa_update.js`.
-- `admin.js` — platform admin console (DEMO)
+- `admin.js` — platform admin console (DEMO); `admin/` — admin sign-in page; `staff.js` — DEMO staff accounts
 - `test/app.test.js` — headless end-to-end tests, perf numbers and screenshots. Results go to `test/perf-results.json`.
 - `ARCHITECTURE.md` — production design, data sources and citations, format matrix, FAA/AD sync, and the cost estimate.
 

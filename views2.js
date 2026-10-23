@@ -268,9 +268,9 @@ V.costs=function(el){
 };
 /* ================= PLANS & BILLING ================= */
 const TIERS=[
-  {id:'heavyjet',name:'Midsize / heavy jets',ex:'Challenger 350, Citation Latitude, Gulfstream',price:399},
-  {id:'lightjet',name:'Light jets',ex:'Citation CJ3+, Phenom 300, HondaJet',price:299},
-  {id:'turboprop',name:'Turboprops',ex:'King Air 350, Pilatus PC-12, TBM 960',price:249},
+  {id:'heavyjet',name:'Midsize / heavy jets',ex:'Challenger 350, Citation Latitude, Gulfstream',price:299},
+  {id:'lightjet',name:'Light jets',ex:'Citation CJ3+, Phenom 300, HondaJet',price:199},
+  {id:'turboprop',name:'Turboprops',ex:'King Air 350, Pilatus PC-12, TBM 960',price:149},
   {id:'turbineheli',name:'Turbine helicopters',ex:'Bell 505, Airbus H125 (AS350B3), Bell 407',price:149},
   {id:'heavytwin',name:'Heavy piston twins',ex:'Baron G58, Navajo, Cessna 421',price:149},
   {id:'pistonheli',name:'Piston helicopters',ex:'Robinson R44 II, R22, Enstrom 280',price:49},
@@ -283,7 +283,7 @@ VA.fleetPrice=()=>S().aircraft.reduce((t,a)=>t+(TIERS.find(x=>x.id===a.cls)||{pr
 V.plans=function(el){
   const s=S(),fleet=s.aircraft,monthly=VA.fleetPrice(),yearly=monthly*12;
   const calc={};TIERS.forEach(t=>calc[t.id]=fleet.filter(a=>a.cls===t.id).length);
-  const lo=7000,hi=20700,scale=hi*1.05,ex3=(249*2+29)*12;
+  const lo=7000,hi=20700,scale=hi*1.05,ex3=(TIERS.find(t=>t.id==='turboprop').price*2+TIERS.find(t=>t.id==='single').price)*12;
   const feat=['All features on every aircraft','Mechanics always free · unlimited pilots','No setup fees','Month-to-month, cancel anytime'];
   el.innerHTML=`<div class="row" style="margin-bottom:6px"><h2 style="margin:0;font-size:22px;letter-spacing:-.01em;text-transform:none;color:var(--text)">Simple per-aircraft pricing</h2></div>
   <div class="row muted" style="gap:18px;margin-bottom:18px">${feat.map(f=>`<span class="row" style="gap:6px">${I.check.replace('<svg','<svg style="width:15px;height:15px;color:var(--ok)"')}${f}</span>`).join('')}</div>
