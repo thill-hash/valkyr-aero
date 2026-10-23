@@ -3,7 +3,7 @@
    Change with tools/set-admin-password.js (not deployed). Production: ARCHITECTURE.md §17. */
 window.VA_STAFF={
   SES:'va.admin.session',TTL_H:8,
-  accounts:[{id:'platform-admin',email:'admin@hillsystems.com',name:'Hill Systems Admin',org:'Hill Systems',role:'platform',alg:'PBKDF2-SHA-256',iter:600000,salt:'CiQIY5ewrECHQeacsQ+4xw==',hash:'cgowPfe/fGJY8HBcXuLI740auHDHp5KbPQ5Rmf0e/LY='}],
+  accounts:[{id:'platform-admin',email:'thill@hillholdingsinc.com',name:'Hill Systems Admin',org:'Hill Systems',role:'platform',alg:'PBKDF2-SHA-256',iter:600000,salt:'rHob4JotF93RewXd8zAyKQ==',hash:'sW9xE+Xd1ZgpD3m5z1kpnaWLsTelstnAsEcgn/VqDPo='}],
   find(email){email=String(email||'').trim().toLowerCase();return this.accounts.find(a=>a.email===email)||null},
   session(){try{const s=JSON.parse(localStorage.getItem(this.SES)||'null');if(!s||!s.platform||!(s.exp>Date.now())){if(s)localStorage.removeItem(this.SES);return null}return s}catch(e){return null}},
   start(a){const s={uid:a.id,email:a.email,name:a.name,org:a.org,role:'platform',platform:true,initials:'HS',at:new Date().toISOString(),exp:Date.now()+this.TTL_H*3600e3};localStorage.setItem(this.SES,JSON.stringify(s));return s},
