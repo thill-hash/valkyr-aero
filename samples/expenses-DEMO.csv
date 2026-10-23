@@ -1,0 +1,4 @@
+date,tail,category,vendor,description,quantity,unit,unit_price,amount,paid_by,notes
+2026-10-01,N350VK,Fuel & oil,KM02 FBO (demo),Jet A uplift,120,gal,6.10,732.00,Company card,
+2026-10-03,N612VK,Catering,Skyline Catering (demo),Pax lunch,1,ea,240,240.00,Company card,
+2026-10-05,N813ZK,Hangar / tiedown,Dickson Co. Airport Authority (demo),Hangar rent Oct,1,mo,400,400.00,ACH,

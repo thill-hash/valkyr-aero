@@ -1,0 +1,180 @@
+{
+ "format": "valkyr-faa-delta/1",
+ "simulated": true,
+ "source": "SIMULATED sample update (prototype)",
+ "note": "SIMULATED — not real FAA data. Demo tails N350VK/N612VK/N813ZK are verified-unassigned N-numbers; AD numbers 2026-SIM-xx are fictitious.",
+ "baseVersion": "2026-10-22",
+ "version": "2026-10-23",
+ "zipSha256": "SIMULATED-0000000000000000000000000000000000000000000000000000000000000001",
+ "acftref": {
+  "added": [
+   {
+    "CODE": "SIM0001",
+    "MFR": "TEXTRON AVIATION INC",
+    "MODEL": "B300 (SIMULATED new series code)",
+    "TYPE-ACFT": "5",
+    "TYPE-ENG": "2",
+    "AC-CAT": "1",
+    "BUILD-CERT-IND": "0",
+    "NO-ENG": "2",
+    "NO-SEATS": "15",
+    "AC-WEIGHT": "CLASS 2",
+    "SPEED": "0"
+   },
+   {
+    "CODE": "SIM0002",
+    "MFR": "SIMULATED ROTORCRAFT CO",
+    "MODEL": "SR-7 (SIMULATED)",
+    "TYPE-ACFT": "6",
+    "TYPE-ENG": "3",
+    "AC-CAT": "1",
+    "BUILD-CERT-IND": "0",
+    "NO-ENG": "1",
+    "NO-SEATS": "5",
+    "AC-WEIGHT": "CLASS 1",
+    "SPEED": "0"
+   },
+   {
+    "CODE": "SIM0003",
+    "MFR": "SIMULATED KIT AIRCRAFT",
+    "MODEL": "KX-4 (SIMULATED)",
+    "TYPE-ACFT": "4",
+    "TYPE-ENG": "1",
+    "AC-CAT": "1",
+    "BUILD-CERT-IND": "1",
+    "NO-ENG": "1",
+    "NO-SEATS": "4",
+    "AC-WEIGHT": "CLASS 1",
+    "SPEED": "0"
+   }
+  ],
+  "changed": [
+   {
+    "CODE": "4220038",
+    "MFR": "TEXTRON AVIATION INC",
+    "MODEL": "B300",
+    "TYPE-ACFT": "5",
+    "TYPE-ENG": "5",
+    "AC-CAT": "1",
+    "BUILD-CERT-IND": "0",
+    "NO-ENG": "2",
+    "NO-SEATS": "17",
+    "AC-WEIGHT": "CLASS 2",
+    "SPEED": "0"
+   }
+  ],
+  "removed": []
+ },
+ "master": {
+  "changed": [
+   {
+    "N-NUMBER": "350VK",
+    "SERIAL NUMBER": "FL-0950",
+    "MFR MDL CODE": "SIM0001",
+    "ENG MFR MDL": "52044",
+    "YEAR MFR": "2014",
+    "TYPE REGISTRANT": "7",
+    "CERT ISSUE DATE": "20261020",
+    "CERTIFICATION": "1N",
+    "STATUS CODE": "V",
+    "MODE S CODE HEX": "A0D3E1",
+    "EXPIRATION DATE": "20331031",
+    "AIR WORTH DATE": "20140612",
+    "OWNER_HASH": "sim-owner-new-7f3a"
+   },
+   {
+    "N-NUMBER": "612VK",
+    "SERIAL NUMBER": "2105",
+    "MFR MDL CODE": "7090553",
+    "ENG MFR MDL": "",
+    "YEAR MFR": "2019",
+    "TYPE REGISTRANT": "7",
+    "CERT ISSUE DATE": "20191102",
+    "CERTIFICATION": "1N",
+    "STATUS CODE": "V",
+    "MODE S CODE HEX": "A80F2C",
+    "EXPIRATION DATE": "20261220",
+    "AIR WORTH DATE": "20191030",
+    "OWNER_HASH": "demo-owner-b"
+   }
+  ],
+  "removed": [
+   {
+    "N-NUMBER": "813ZK",
+    "SERIAL NUMBER": "6211",
+    "CANCEL DATE": "20261021",
+    "reason": "SIMULATED — registration cancelled (sold/exported)"
+   }
+  ]
+ },
+ "ads": [
+  {
+   "an": "2026-SIM-01",
+   "status": "new",
+   "simulated": true,
+   "subject": "Pilatus PC-12/47E — horizontal stabilizer attach bolt inspection (SIMULATED)",
+   "effective": "2026-11-27",
+   "applicability": {
+    "make": "PILATUS",
+    "models": [
+     "PC-12/47E"
+    ],
+    "serialFrom": 1001,
+    "serialTo": 2999
+   }
+  },
+  {
+   "an": "2026-SIM-02",
+   "status": "new",
+   "simulated": true,
+   "subject": "Continental IO-550 — crankcase through-bolt inspection (SIMULATED)",
+   "effective": "2026-12-04",
+   "applicability": {
+    "engines": [
+     "IO-550"
+    ]
+   }
+  },
+  {
+   "an": "2026-SIM-03",
+   "status": "revised",
+   "simulated": true,
+   "supersedes": "AD 2025-DEMO-07",
+   "subject": "Pilatus PC-12 flap actuator attach fitting — revised inspection interval (SIMULATED)",
+   "effective": "2026-11-15",
+   "applicability": {
+    "make": "PILATUS",
+    "models": [
+     "PC-12"
+    ],
+    "serialFrom": 1001,
+    "serialTo": 9999
+   }
+  },
+  {
+   "an": "2026-SIM-04",
+   "status": "new",
+   "simulated": true,
+   "subject": "Collins Pro Line Fusion — display software update (SIMULATED appliance AD)",
+   "effective": "2026-12-10",
+   "applicability": {
+    "appliances": [
+     "Pro Line Fusion"
+    ]
+   }
+  },
+  {
+   "an": "2026-SIM-05",
+   "status": "new",
+   "simulated": true,
+   "subject": "Robinson R44 — main rotor blade inspection (SIMULATED; should match no demo aircraft)",
+   "effective": "2026-12-01",
+   "applicability": {
+    "make": "ROBINSON",
+    "models": [
+     "R44"
+    ]
+   }
+  }
+ ]
+}

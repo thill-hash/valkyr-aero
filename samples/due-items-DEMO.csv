@@ -1,0 +1,4 @@
+tail,item,type,ref,interval_hours,interval_months,last_done_hours,last_done_date,required
+N813ZK,Alternator belt inspection,Inspection,Mfr SIL (demo),100,,790.0,,yes
+N350VK,Oxygen mask inspection,Calendar,Operator program (demo),,12,,2026-01-15,yes
+N612VK,Wing bolt inspection,AD,AD 20XX-DEMO-99,,24,,2025-05-01,yes
