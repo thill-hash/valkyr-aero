@@ -1,4 +1,4 @@
-/* Valkyr Aero — Fleet, Aircraft detail, Maintenance (fleet-wide due list) */
+/* Valkyr360 — Fleet, Aircraft detail, Maintenance (fleet-wide due list) */
 (function(){
 const {$,$$,esc,h1,money,fmtDate,fmtShort,todayISO,I}=VA;
 const S=()=>VA.state();

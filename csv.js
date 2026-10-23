@@ -1,4 +1,4 @@
-/* Valkyr Aero — CSV import/export, Garmin data-log import, engine exceedance detection */
+/* Valkyr360 — CSV import/export, Garmin data-log import, engine exceedance detection */
 (function(){
 const {esc,h1,money,todayISO,uid,fmtShort,addDays}=VA;
 const S=()=>VA.state();

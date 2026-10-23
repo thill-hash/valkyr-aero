@@ -1,4 +1,4 @@
-/* Valkyr Aero — Costs hub: one nav item with tabs Overview · Expenses · Report (#/costs, #/costs/expenses, #/costs/report).
+/* Valkyr360 — Costs hub: one nav item with tabs Overview · Expenses · Report (#/costs, #/costs/expenses, #/costs/report).
    Old #/expenses and #/tco links redirect. The aircraft picker (VA.costAc, '' = whole fleet) is shared across the tabs. */
 (function(){
 const V=VA.views;const esc=VA.esc;

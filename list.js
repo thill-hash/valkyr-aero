@@ -1,4 +1,4 @@
-/* Valkyr Aero — list control: search + filters + sort + pagination.
+/* Valkyr360 — list control: search + filters + sort + pagination.
    Works on in-memory arrays (cfg.data) or async DAL queries (cfg.fetch). Only one page is ever in the DOM. */
 (function(){
 const {$,$$,esc}=VA;

@@ -1,4 +1,4 @@
-/* Valkyr Aero — DEMO DATA. All aircraft, N-numbers, serials, AD/SB numbers, people and costs are fictitious. */
+/* Valkyr360 — DEMO DATA. All aircraft, N-numbers, serials, AD/SB numbers, people and costs are fictitious. */
 (function(){
   function iso(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
   function dayOff(n){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return iso(d)}

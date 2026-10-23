@@ -1,4 +1,4 @@
-/* Valkyr Aero — DEMO sign-in.
+/* Valkyr360 — DEMO sign-in.
    This is a static prototype: accounts live only in this browser (localStorage). Passwords are never stored;
    we keep a random 16-byte salt and a PBKDF2-HMAC-SHA-256 hash (150,000 iterations, WebCrypto) per account.
    This is NOT real security; anyone with access to this browser profile can read or delete the accounts.
@@ -7,7 +7,7 @@
 const {$,$$,esc}=VA;
 const ACC='va.accounts',SES='va.session',ITER=150000;
 const ROLES=[['owner','Owner','Fleet, costs, plans and billing'],['pilot','Pilot','Schedule, log flights, squawks'],['mechanic','Mechanic','Maintenance, squawks, sign-offs']];
-const DEMO={uid:'demo',email:'demo@valkyr-aero.demo',name:'Trevor Hill',org:'Valkyr Aero Demo Flight Dept (DEMO)',role:'owner',demo:true};
+const DEMO={uid:'demo',email:'demo@valkyr-aero.demo',name:'Trevor Hill',org:'Valkyr360 Demo Flight Dept (DEMO)',role:'owner',demo:true};
 const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const hasCrypto=()=>!!(window.crypto&&crypto.subtle&&crypto.getRandomValues);
@@ -22,7 +22,9 @@ function session(){try{return JSON.parse(localStorage.getItem(SES)||sessionStora
 function setSession(s,remember){localStorage.removeItem(SES);sessionStorage.removeItem(SES);if(s)(remember?localStorage:sessionStorage).setItem(SES,JSON.stringify(s))}
 function updateSession(patch){const s=session();if(!s)return;const rem=!!localStorage.getItem(SES);setSession({...s,...patch},rem)}
 
+const scopeOf=s=>s&&!s.demo&&s.uid?'valkyr-aero-'+s.uid:'valkyr-aero';
 const A=VA.auth={ROLES,session,accounts,
+  scope(){return scopeOf(session())},
   /* create: returns {ok}|{field,msg} */
   check({name,email,password,org}){
     name=String(name||'').trim();org=String(org||'').trim();email=normEmail(email);
@@ -51,6 +53,8 @@ const A=VA.auth={ROLES,session,accounts,
     const h=await hashPw(String(password||''),unb64(a.salt),a.iter||ITER);return h===a.hash?a:null},
   begin(acct,remember){const s=acct.demo?{...DEMO,role:acct.role||'owner'}:{uid:acct.id,email:acct.email,name:acct.name,org:acct.org,role:acct.role||'owner',demo:false};
     s.initials=initials(s.name);s.at=new Date().toISOString();setSession(s,remember);
+    /* each account has its own IndexedDB scope; switching scope = reload into the other database */
+    if(VA.scopeLoaded&&scopeOf(s)!==VA.scopeLoaded){const want=A.pendingHash||location.hash||'#/fleet';A.pendingHash=null;VA.switching=true;history.replaceState(null,'',location.pathname+location.search+want);location.reload();return}
     const S=VA.state();if(S){S.role=s.role;VA.save()}
     hide();const want=A.pendingHash;A.pendingHash=null;
     if(want&&want!==location.hash)location.hash=want;else VA.route();
@@ -65,21 +69,11 @@ A.roleLabel=roleLabel;
 
 /* ---------- sign-in screen ---------- */
 const LOGO=(id)=>`<svg class="logo" viewBox="0 0 40 32" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#5ff2ff"/><stop offset="1" stop-color="#00a8ff"/></linearGradient></defs><path d="M1 4h10.5L20 21.5 28.5 4H39L22.5 30h-5z" fill="url(#${id})"/><path d="M1 4h10.5l2.2 4.6H5.4z" fill="#07090d" opacity=".55"/><path d="M39 4H28.5l-2.2 4.6h8.3z" fill="#07090d" opacity=".55"/></svg>`;
-function shell(inner){return `<div class="auth-wrap">
-  <section class="auth-hero" aria-hidden="true">
-    <div class="auth-brand">${LOGO('algH')}<span class="wordmark">VALKYR<b>AERO</b></span></div>
-    <h2>The flight department in a box<br><span>for 1–5 aircraft.</span></h2>
-    <ul class="auth-points">
-      <li><b>Airworthiness first</b>Due items, ADs and squawks block the schedule before a bad flight does.</li>
-      <li><b>Every hour counted</b>SD-card and ForeFlight imports feed the logbook, engine trends and true $/hr.</li>
-      <li><b>One ledger</b>Fuel, maintenance and fixed costs roll up into a cost report you can print.</li>
-    </ul>
-    <div class="auth-hud"><span>N612VK · PC-12 NGX</span><span class="ok">AIRWORTHY</span><span>312.4 h / 12 mo</span><span>$2,083 / hr</span></div>
-  </section>
-  <section class="auth-card" aria-labelledby="authH">
-    <div class="auth-brand auth-brand-m">${LOGO('algM')}<span class="wordmark">VALKYR<b>AERO</b></span></div>
+function shell(inner){return `<div class="auth-wrap"><section class="auth-card" aria-labelledby="authH">
+    <div class="auth-brand">${LOGO('algM')}<span class="wordmark">VALKYR<b>360</b></span></div>
+    <div class="by-hs">by <img src="brand/hill-systems-logo-sm.png" alt="Hill Systems" height="16"></div>
     ${inner}
-    <p class="auth-note"><span class="demo-tag">DEMO</span> Accounts are stored only in this browser. Passwords are kept as a salted hash, never in plain text.</p>
+    <p class="auth-note">Demo: accounts are stored only in this browser.</p>
   </section></div>`}
 A.WIRE={};A.busy=(...a)=>busy(...a);A.bad=(...a)=>bad(...a);
 const field=A.field=(name,label,type='text',extra='')=>`<label class="f">${label}<input name="${name}" type="${type}" ${extra}></label>`;
@@ -87,43 +81,41 @@ const STEPS=['Account','Aircraft','Plan','Checkout'];
 const steps=i=>`<ol class="auth-steps" aria-label="Sign-up steps">${STEPS.map((x,k)=>`<li class="${k<i?'done':k===i?'on':''}" ${k===i?'aria-current="step"':''}><span>${k+1}</span>${x}</li>`).join('')}</ol>`;
 A.steps=steps;A.shell=shell;
 const VIEWS=A.VIEWS={
-  signin:()=>shell(`<h1 id="authH">Sign in</h1><p class="auth-sub">Welcome back. Sign in to your flight department.</p>
-    <button class="btn primary auth-demo" id="authDemo" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 16l20-6-20-6 4 6z"/><path d="M6 10h8"/></svg>Explore the demo</button>
-    <p class="auth-as">Signs you in as the demo owner · or explore as <button type="button" class="link-btn" data-demo="pilot">Pilot</button> · <button type="button" class="link-btn" data-demo="mechanic">Mechanic</button></p>
-    <div class="auth-or"><span>or sign in with email</span></div>
+  signin:()=>shell(`<h1 id="authH" class="auth-head">The flight department in a box.</h1>
     <form class="form auth-form" id="signinForm" novalidate>
       ${field('email','Email','email','autocomplete="username" inputmode="email" required')}
-      <label class="f"><span class="auth-lab">Password <button type="button" class="link-btn" id="authForgot">Forgot password?</button></span><span class="pw"><input name="password" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" aria-label="Show password" data-eye>Show</button></span></label>
-      <label class="auth-check"><input type="checkbox" name="remember" checked> Remember me</label>
+      <label class="f">Password<span class="pw"><input name="password" type="password" autocomplete="current-password" required><button type="button" class="pw-eye" aria-label="Show password" data-eye>Show</button></span></label>
+      <div class="auth-row"><label class="auth-check"><input type="checkbox" name="remember" checked> Remember me</label><button type="button" class="link-btn" id="authForgot">Forgot password?</button></div>
       <div class="auth-err" id="authErr" role="alert" hidden></div>
       <button class="btn primary auth-submit" id="signinBtn" type="submit">Sign in</button>
     </form>
-    <p class="auth-alt">New to Valkyr Aero? <button type="button" class="link-btn" id="authCreate">Create account</button></p>`),
-  create:()=>shell(`${steps(0)}<h1 id="authH">Create your account</h1><p class="auth-sub">Set up your flight department. You’ll be its owner and can preview pilot and mechanic views.</p>
+    <button class="btn auth-submit auth-demo" id="authDemo" type="button">Explore the demo</button>
+    <p class="auth-alt"><button type="button" class="link-btn" id="authCreate">Create account</button></p>`),
+  create:()=>shell(`${steps(0)}<h1 id="authH">Create account</h1>
     <form class="form auth-form" id="createForm" novalidate>
-      ${field('name','Full name','text','autocomplete="name" required value="'+esc(A.draft&&A.draft.name||'')+'"')}
-      ${field('email','Work email','email','autocomplete="email" inputmode="email" required value="'+esc(A.draft&&A.draft.email||'')+'"')}
-      <label class="f">Password<span class="pw"><input name="password" type="password" autocomplete="new-password" minlength="8" required aria-describedby="pwHint"><button type="button" class="pw-eye" aria-label="Show password" data-eye>Show</button></span><span class="hint" id="pwHint">At least 8 characters.</span></label>
-      ${field('org','Organization / flight department','text','autocomplete="organization" placeholder="e.g. Hill Aviation LLC" required value="'+esc(A.draft&&A.draft.org||'')+'"')}
-      <button class="btn primary auth-submit" id="createBtn" type="submit">Continue: add aircraft →</button>
+      ${field('name','Name','text','autocomplete="name" required value="'+esc(A.draft&&A.draft.name||'')+'"')}
+      ${field('email','Email','email','autocomplete="email" inputmode="email" required value="'+esc(A.draft&&A.draft.email||'')+'"')}
+      <label class="f">Password<span class="pw"><input name="password" type="password" autocomplete="new-password" minlength="8" required aria-describedby="pwHint"><button type="button" class="pw-eye" aria-label="Show password" data-eye>Show</button></span><span class="hint" id="pwHint">8+ characters</span></label>
+      ${field('org','Organization','text','autocomplete="organization" required value="'+esc(A.draft&&A.draft.org||'')+'"')}
+      <button class="btn primary auth-submit" id="createBtn" type="submit">Continue</button>
     </form>
-    <p class="auth-alt">Already have an account? <button type="button" class="link-btn" id="authBack">Sign in</button></p>`),
-  forgot:()=>shell(`<h1 id="authH">Reset your password</h1><p class="auth-sub">Enter the email you signed up with and we’ll send a reset link.</p>
+    <p class="auth-alt"><button type="button" class="link-btn" id="authBack">Sign in</button></p>`),
+  forgot:()=>shell(`<h1 id="authH">Reset password</h1>
     <form class="form auth-form" id="forgotForm" novalidate>
       ${field('email','Email','email','autocomplete="email" inputmode="email" required')}
       <button class="btn primary auth-submit" id="forgotBtn" type="submit">Send reset link</button>
     </form>
-    <p class="auth-alt"><button type="button" class="link-btn" id="authBack">← Back to sign in</button></p>`),
+    <p class="auth-alt"><button type="button" class="link-btn" id="authBack">Back</button></p>`),
   sent:(email)=>shell(`<div class="auth-sent"><div class="auth-sent-ic" aria-hidden="true">✓</div><h1 id="authH">Check your email</h1>
-    <p class="auth-sub" id="sentMsg">If an account exists for <b>${esc(email)}</b>, a password reset link is on its way. It expires in 30 minutes.</p>
-    <p class="dim" style="font-size:12px">Demo: nothing was actually sent.</p>
-    <button class="btn auth-submit" id="authBack" type="button">Back to sign in</button></div>`)
+    <p class="auth-sub" id="sentMsg">If an account exists for <b>${esc(email)}</b>, a reset link is on its way.</p>
+    <p class="dim" style="font-size:12px">Demo: nothing was sent.</p>
+    <button class="btn auth-submit" id="authBack" type="button">Back</button></div>`)
 };
 function show(view='signin',arg){
   if(!A.pendingHash&&location.hash&&!/^#\/?(fleet)?$/.test(location.hash))A.pendingHash=location.hash;
   let el=$('#auth');if(!el){el=document.createElement('div');el.id='auth';el.className='auth';document.body.appendChild(el)}
   document.body.classList.add('signed-out');el.innerHTML=VIEWS[view](arg);el.dataset.view=view;
-  document.title=(({signin:'Sign in',create:'Create account',forgot:'Reset password',sent:'Check your email',aircraft:'Add aircraft',plan:'Your plan',checkout:'Checkout',done:'You’re all set'})[view]||'Sign in')+' · Valkyr Aero';el.querySelector('.auth-card').classList.toggle('wide',['aircraft','plan','checkout','done'].includes(view));
+  document.title=(({signin:'Sign in',create:'Create account',forgot:'Reset password',sent:'Check your email',aircraft:'Add aircraft',plan:'Your plan',checkout:'Checkout',done:'You’re all set'})[view]||'Sign in')+' · Valkyr360 by Hill Systems';el.querySelector('.auth-card').classList.toggle('wide',['aircraft','plan','checkout','done'].includes(view));
   wire(el,view);
   const f=$('form input',el)||$('#authBack',el);if(f&&!matchMedia('(max-width:600px)').matches)setTimeout(()=>f.focus({preventScroll:true}),30);
 }

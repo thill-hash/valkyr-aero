@@ -1,4 +1,4 @@
-/* Valkyr Aero — aircraft type library from the real FAA Aircraft Registry (ACFTREF / ENGINE / MASTER).
+/* Valkyr360 — aircraft type library from the real FAA Aircraft Registry (ACFTREF / ENGINE / MASTER).
    Data files in ./data are loaded lazily with <script> tags (works from file://). Owner data is not bundled. */
 (function(){
 const T=VA.types={lib:null};

@@ -1,4 +1,4 @@
-/* Valkyr Aero — DEMO data generators: flight history, engine summaries, expenses, budgets, large dataset.
+/* Valkyr360 — DEMO data generators: flight history, engine summaries, expenses, budgets, large dataset.
    Everything produced here is fictitious and tagged demo:true. */
 (function(){
 const {todayISO,addDays,addMonths,uid,h1}=VA;

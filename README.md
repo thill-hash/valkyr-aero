@@ -1,6 +1,6 @@
-# Valkyr Aero — clickable prototype (DEMO)
+# Valkyr360 by Hill Systems — clickable prototype (DEMO)
 
-"The flight department in a box for 1–5 aircraft." Open `index.html` in Chrome/Edge/Safari — no server and no build step, and it works offline. Everything is **DEMO** data. The N-numbers N350VK / N612VK / N813ZK, and the large-dataset tails, were checked as **not** present in FAA MASTER, RESERVED or DEREG (2026-10-22).
+"The flight department in a box." Maintenance, costs, logs and documents in one place. Open `index.html` in Chrome/Edge/Safari — no server and no build step, and it works offline. Everything is **DEMO** data. The N-numbers N350VK / N612VK / N813ZK, and the large-dataset tails, were checked as **not** present in FAA MASTER, RESERVED or DEREG (2026-10-22).
 
 ## Screens
 Sign in (DEMO: Explore the demo, email + password, Remember me, Forgot password, Create account) · Sign-up with billing (account → aircraft via FAA N-number lookup → plan + 14-day trial → simulated checkout) · Fleet · Aircraft detail · Schedule (blocks unairworthy aircraft) · Log flight (simulated ForeFlight, CSV import) · SD-card import (any avionics card or zip) · Maintenance (fleet due list) · Squawks (incl. auto-detected drafts) · Engine trends · Costs (tabs: Overview `#/costs`, Expenses `#/costs/expenses`, Report `#/costs/report`; old `#/expenses` and `#/tco` links redirect) · Integrations · Data sources (FAA registry versioning/updates, change review, AD feed) · Add aircraft (FAA N-number lookup + type library) · Plans.
@@ -77,3 +77,4 @@ Speed-ups in the polish pass: index `getAll` batches instead of per-row cursors;
 - The header avatar menu holds **View as** (owner, pilot, mechanic), **Account**, **Billing** (owners only) and **Sign out**.
 - Billing shows the plan per aircraft, the monthly total, the next invoice, demo invoices, a simulated payment-method update, and add/remove aircraft with a proration note.
 - Accounts are stored only in this browser. Passwords are never stored, only a salted PBKDF2-SHA-256 hash (WebCrypto). No third-party sign-in or payment branding. Production auth and billing: ARCHITECTURE.md §15–16.
+- Each account has its own data (a separate IndexedDB scope). The fleet is the bill: adding an aircraft anywhere bills it, archiving removes it with a proration note, and at least one aircraft stays. There is no aircraft cap. Cancel subscription: full access until the period ends, then read-only and exportable.

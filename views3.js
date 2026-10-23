@@ -1,4 +1,4 @@
-/* Valkyr Aero — Expenses ledger, TCO report, Engine trends, Integrations / avionics import, Add aircraft */
+/* Valkyr360 — Expenses ledger, TCO report, Engine trends, Integrations / avionics import, Add aircraft */
 (function(){
 const {$,$$,esc,h1,money,fmtDate,fmtShort,todayISO,addDays,addMonths,uid,I}=VA;
 const S=()=>VA.state();const V=VA.views;const role=()=>S().role;
@@ -94,7 +94,7 @@ function tcoHTML(r){
   const maxM=Math.max(...r.months.map(m=>m.fixed+m.variable),1);
   const cats=VA.CATS.filter(c=>s.byCat[c[0]]||r.budget[c[0]]);
   const varCell=(act,bud)=>{const v=act-bud,p=bud?v/bud*100:0;return `<td class="mono ${v>0?'bad-t':'ok-t'}" style="text-align:right">${bud?(v>0?'+':'')+money(v):'—'}</td><td class="mono small ${v>0?'bad-t':'ok-t'}" style="text-align:right">${bud?(p>0?'+':'')+p.toFixed(1)+'%':''}</td>`};
-  return `<div class="print-head"><b>Valkyr Aero · Total Cost of Operation</b> — ${a?esc(a.tail)+' '+esc(a.short):'Fleet'} · ${fmtDate(r.from)} – ${fmtDate(r.to)} · DEMO DATA</div>
+  return `<div class="print-head"><b>Valkyr360 · Total Cost of Operation</b> — ${a?esc(a.tail)+' '+esc(a.short):'Fleet'} · ${fmtDate(r.from)} – ${fmtDate(r.to)} · DEMO DATA</div>
   <div class="stats s6">
     <div class="stat"><div class="k">Total cost</div><div class="v">${money(s.total)}</div></div>
     <div class="stat"><div class="k">Flight hours</div><div class="v">${h1(s.hrs)}</div></div>
@@ -111,11 +111,11 @@ function tcoHTML(r){
      ${r.months.map((m,i)=>{const x=10+i*32.5,hf=m.fixed/maxM*140,hv=m.variable/maxM*140;return `<rect x="${x}" y="${160-hf-hv}" width="22" height="${hv}" fill="var(--c1)" rx="2"><title>${m.m}: variable ${money(m.variable)}</title></rect><rect x="${x}" y="${160-hf}" width="22" height="${hf}" fill="var(--c3)" rx="2"><title>${m.m}: fixed ${money(m.fixed)}</title></rect><text x="${x+11}" y="174" font-size="8" text-anchor="middle" fill="var(--muted)">${m.m.slice(5)}</text><text x="${x+11}" y="185" font-size="7" text-anchor="middle" fill="var(--dim)">${Math.round(m.hrs)}h</text>`}).join('')}
     </svg><div class="legend"><span style="--c:var(--c3)"><i></i>Fixed</span><span style="--c:var(--c1)"><i></i>Variable</span><span class="dim">· hours flown under each bar</span></div></div></div>
   ${r.per.length?`<h3 class="section-h">By aircraft</h3><div class="tbl"><div class="tbl-scroll"><table><thead><tr><th>Tail</th><th>Hours</th><th style="text-align:right">Fixed</th><th style="text-align:right">Variable</th><th style="text-align:right">Total</th><th style="text-align:right">$/hr loaded</th><th style="text-align:right">$/hr variable</th></tr></thead><tbody>
-    ${r.per.slice(0,60).map(({a,s})=>`<tr><td class="mono" style="font-weight:700">${esc(a.tail)} <span class="muted small" style="font-weight:400">${esc(a.short)}</span></td><td class="mono">${h1(s.hrs)}</td><td class="mono" style="text-align:right">${money(s.fixed)}</td><td class="mono" style="text-align:right">${money(s.variable)}</td><td class="mono" style="text-align:right">${money(s.total)}</td><td class="mono" style="text-align:right">${s.hrs?money(s.perHr):'—'}</td><td class="mono" style="text-align:right">${s.hrs?money(s.varPerHr):'—'}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    ${r.per.map(({a,s})=>`<tr><td class="mono" style="font-weight:700">${esc(a.tail)} <span class="muted small" style="font-weight:400">${esc(a.short)}</span></td><td class="mono">${h1(s.hrs)}</td><td class="mono" style="text-align:right">${money(s.fixed)}</td><td class="mono" style="text-align:right">${money(s.variable)}</td><td class="mono" style="text-align:right">${money(s.total)}</td><td class="mono" style="text-align:right">${s.hrs?money(s.perHr):'—'}</td><td class="mono" style="text-align:right">${s.hrs?money(s.varPerHr):'—'}</td></tr>`).join('')}</tbody></table></div></div>`:''}
   <p class="small dim" style="margin-top:12px">${r.rows.toLocaleString()} ledger rows aggregated in ${r.ms.toFixed(0)} ms. Budgets are annual demo budgets prorated to ${r.days} days. Trip = a day with at least one flight on an aircraft.</p>`;
 }
 function exportTco(r){
-  const s=r.sum;const rows=[['Valkyr Aero TCO (DEMO DATA)'],['scope',r.ac?VA.ac(r.ac).tail:'fleet'],['from',r.from],['to',r.to],[],['category','fixed_variable','actual','budget','variance']];
+  const s=r.sum;const rows=[['Valkyr360 TCO (DEMO DATA)'],['scope',r.ac?VA.ac(r.ac).tail:'fleet'],['from',r.from],['to',r.to],[],['category','fixed_variable','actual','budget','variance']];
   VA.CATS.filter(c=>s.byCat[c[0]]||r.budget[c[0]]).forEach(c=>rows.push([c[1],c[2],(s.byCat[c[0]]||0).toFixed(2),(r.budget[c[0]]||0).toFixed(2),((s.byCat[c[0]]||0)-(r.budget[c[0]]||0)).toFixed(2)]));
   rows.push([],['total',s.total.toFixed(2)],['fixed',s.fixed.toFixed(2)],['variable',s.variable.toFixed(2)],['flight_hours',s.hrs.toFixed(1)],['cost_per_hour_loaded',s.perHr.toFixed(2)],['cost_per_hour_variable',s.varPerHr.toFixed(2)],['trips',s.trips],['cost_per_trip',s.perTrip.toFixed(2)]);
   if(r.per.length){rows.push([],['tail','hours','fixed','variable','total','per_hour_loaded','per_hour_variable']);r.per.forEach(({a,s})=>rows.push([a.tail,s.hrs.toFixed(1),s.fixed.toFixed(2),s.variable.toFixed(2),s.total.toFixed(2),s.perHr.toFixed(2),s.varPerHr.toFixed(2)]))}
@@ -263,15 +263,9 @@ V.addaircraft=function(el){
       <button class="btn primary" style="margin-top:14px;width:100%;justify-content:center" id="apAdd">Add ${esc(tail)} to fleet</button>`;
     VA.lastProfile={type,reg,c,av};
     $('#apAdd',el).onclick=()=>{const f=$('#apf',el);const t=f.tail.value.trim().toUpperCase();if(!/^N[1-9][0-9A-Z]{0,4}$/.test(t)){VA.invalid(f.tail,'Enter a US N-number like N172SP');return}if(S().aircraft.some(a=>a.tail===t)){VA.invalid(f.tail,t+' is already in your fleet');return}
-      const id=uid('ac');const tt=parseFloat(f.tt.value)||0;
-      const a={id,tail:t,cls:c.tier,kind:c.kind,model:f.model.value,short:type.model,year:+f.year.value||'',serial:f.serial.value,engines:reg&&reg.eng?`${type.noEng} × ${reg.eng.mfr} ${reg.eng.model}`:`${type.noEng} engine${type.noEng>1?'s':''}`,color:`hsl(${Math.floor(Math.random()*360)} 85% 62%)`,
-        tt,hrs12:0,fuel:c.kind==='turbine'?'Jet A':'100LL',gph:c.kind==='turbine'?60:12,fuelPrice:c.kind==='turbine'?6.10:6.75,fixedAnnual:{},base:'KM02',faa:{code:type.code,mfr:type.mfr,model:type.model,engCode:reg&&reg.engCode,modeSHex:reg&&reg.modeSHex},avionics:av.suite,baselineVerified:null,reg:reg&&!reg.notFound?{n:reg.n,serial:reg.serial,code:reg.code,engCode:reg.engCode,year:reg.year,status:reg.status,certIssue:VA.types.fmtYMD(reg.certIssue)||reg.certIssue,expiration:VA.types.fmtYMD(reg.expiration)||reg.expiration,registrantType:reg.registrantType,certification:reg.certification,modeSHex:reg.modeSHex,src:'FAA registry '+((VA.faa&&VA.faa.st().version)||'')}:null};
-      if(VA.faa&&type.code&&!VA.faa.st().tierMap[type.code])VA.faa.st().tierMap[type.code]={tier:c.tier,by:'pinned when added',at:todayISO()};
-      if(a.reg&&a.reg.expiration&&VA.faa)VA.faa.regItem(a,{expiration:a.reg.expiration,version:VA.faa.st().version});
-      S().aircraft.push(a);
-      c.program.forEach(p=>S().items.push({id:uid('m'),ac:id,cat:p.cat,name:p.name,ref:p.ref,intHrs:p.intHrs||null,intMo:p.intMo||null,lastHrs:p.intHrs?tt:null,lastDate:p.intMo?todayISO():null,required:p.required!==false,verified:null,template:true}));
-      if(reg&&reg.expiration){const it=S().items.find(i=>i.ac===id&&i.name==='Aircraft registration renewal');if(it){it.lastDate=null;it.targetDate=VA.types.fmtYMD(reg.expiration);it.intMo=null;it.required=true}}
-      VA.save();VA.toast(`${esc(t)} added · ${c.program.length} template items await IA verification`,'ok');VA.go('aircraft/'+id)};
+      const r=VA.addAircraft({type,reg:reg&&!reg.notFound?reg:null,tail:t,model:f.model.value,year:f.year.value,serial:f.serial.value,tt:parseFloat(f.tt.value)||0});
+      if(r.error){VA.invalid(f.tail,r.error);return}
+      VA.toast(`${esc(r.note||t+' added')} · ${r.program.length} template items await IA verification`,'ok');VA.go('aircraft/'+r.a.id)};
   }
   const pre=VA.query.get('n');if(pre){$('#nIn',el).value=pre;look()}
   return {title:'Add aircraft'};

@@ -1,4 +1,4 @@
-/* Valkyr Aero — Settings › Data sources (FAA registry versioning, updates, change review, unmapped types, AD feed, audit log) */
+/* Valkyr360 — Settings › Data sources (FAA registry versioning, updates, change review, unmapped types, AD feed, audit log) */
 (function(){
 const {esc,todayISO}=VA;const V=VA.views;const $=(s,el)=>(el||document).querySelector(s);const $$=(s,el)=>[...(el||document).querySelectorAll(s)];
 const S=()=>VA.state();

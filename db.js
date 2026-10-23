@@ -1,8 +1,8 @@
-/* Valkyr Aero — data-access layer over IndexedDB.
+/* Valkyr360 — data-access layer over IndexedDB.
    Stores: kv (app state blob: aircraft, due items, squawks, docs, bookings, people),
            logbook (append-only entries incl. flights; indexed for paged queries). */
 (function(){
-const NAME='valkyr-aero',VER=2;
+const NAME0='valkyr-aero',VER=2;let NAME=NAME0; /* one database per data scope: 'valkyr-aero' (demo) or 'valkyr-aero-<accountId>' */
 let db=null;
 const req2p=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const txDone=t=>new Promise((res,rej)=>{t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)});
@@ -24,7 +24,8 @@ async function allCached(n){if(CACHE[n]&&CACHE[n].ver===CACHE.ver[n])return CACH
 const cmpDate=(dir)=>dir==='next'?(a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:a.id>b.id?1:0):(a,b)=>a.date<b.date?1:a.date>b.date?-1:(a.id<b.id?1:a.id>b.id?-1:0);
 const DAL=window.DAL={
   _cache:CACHE,
-  async init(){
+  get name(){return NAME},
+  async init(name){if(name)NAME=name;
     const r=indexedDB.open(NAME,VER);
     r.onupgradeneeded=()=>{const d=r.result;
       if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');

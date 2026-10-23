@@ -1,4 +1,4 @@
-/* Valkyr Aero — universal avionics / engine-data importer.
+/* Valkyr360 — universal avionics / engine-data importer.
    Pluggable parser registry → auto-detect (file name, header, content signature) → parse in a Web Worker (chunked)
    → normalized flight-data schema → aircraft matching with confidence → user confirms → hours, fuel, trends, exceedances. */
 (function(){

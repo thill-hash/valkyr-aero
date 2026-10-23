@@ -1,4 +1,4 @@
-/* Valkyr Aero — core: state, airworthiness engine, routing, UI helpers */
+/* Valkyr360 — core: state, airworthiness engine, routing, UI helpers */
 const VA=window.VA={};
 let S=null;
 let saveT=null;
@@ -19,11 +19,11 @@ VA.seedStandard=async function(){
   if(sr){sr.eng.cht=466;S.squawks.unshift({id:uid('s'),ac:'sr22',title:'Engine exceedance: CHT 466 °F (limit 460 °F)',desc:`Auto-detected from engine data on ${sr.from} → ${sr.to} (${sr.date}). Rising CHT trend over the last ~40 days — suggest baffle / injector inspection. Draft — needs mechanic review.`,by:'system',date:sr.date,grounding:false,status:'draft',auto:true,flight:sr.id})}
   await DAL.clearAll();await DAL.addLogs([...logbook,...fl]);await DAL.putExpenses(hist.expenses);await VA.flush();
 };
-VA.reset=async()=>{await VA.seedStandard();toast('Demo data reset','ok');route()};
+VA.reset=async()=>{if(VA.isAccount&&VA.isAccount())return;await VA.seedStandard();toast('Demo data reset','ok');route()};
 /* cached lookups (rebuilt lazily after any mutation) */
 let cache=null;
 VA.dirty=()=>{cache=null};
-function C(){if(!cache){cache={ac:new Map(),items:new Map(),people:new Map()};S.aircraft.forEach(a=>{cache.ac.set(a.id,a);cache.items.set(a.id,[])});S.items.forEach(i=>{(cache.items.get(i.ac)||cache.items.set(i.ac,[]).get(i.ac)).push(i)});S.people.forEach(p=>cache.people.set(p.id,p))}return cache}
+function C(){if(!cache){cache={ac:new Map(),items:new Map(),people:new Map()};S.aircraft.forEach(a=>{cache.ac.set(a.id,a);cache.items.set(a.id,[])});S.items.forEach(i=>{(cache.items.get(i.ac)||cache.items.set(i.ac,[]).get(i.ac)).push(i)});S.people.forEach(p=>cache.people.set(p.id,p));cache.arch=new Map((S.archived||[]).map(b=>[b.aircraft.id,b.aircraft]))}return cache}
 VA.itemsOf=id=>C().items.get(id)||[];
 
 /* ---------- utils ---------- */
@@ -44,7 +44,7 @@ const uid=p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)
 Object.assign(VA,{$,$$,esc,todayISO,parse,isoOf,addMonths,addDays,daysBetween,fmtDate,fmtShort,h1,money,uid});
 
 /* ---------- lookups ---------- */
-VA.ac=id=>C().ac.get(id);
+VA.ac=id=>C().ac.get(id)||C().arch.get(id); /* archived aircraft still resolve for history rows (logbook, expenses) */
 VA.person=id=>id==='system'?{name:'Valkyr engine monitor',initials:'VA'}:C().people.get(id)||{name:'—',initials:'?'};
 VA.me=()=>S.people.find(p=>p.role===S.role);
 VA.pilots=()=>S.people.filter(p=>p.role!=='mechanic'||true);
@@ -204,7 +204,7 @@ const I={
 };
 VA.I=I;
 VA.iaBadge=v=>v?`<span class="ia" title="Verified by ${esc(v.by)}, ${esc(v.cert)} on ${fmtDate(v.date)}">${I.shield}IA verified</span>`:`<span class="chip">Unverified</span>`;
-VA.demoN=()=>`<span class="demo-n" title="Fictitious demo registration">DEMO</span>`;
+VA.demoN=()=>VA.isAccount&&VA.isAccount()?'':`<span class="demo-n" title="Fictitious demo registration">DEMO</span>`;
 
 /* ---------- nav / routing ---------- */
 const NAV=[
@@ -233,6 +233,7 @@ function renderChrome(cur){
   const me=VA.me();if(VA.auth)VA.auth.renderWho(me);else $('#who').innerHTML=`<div class="avatar">${me.initials}</div><div><b>${esc(me.name)}</b>${esc(me.title)}</div>`;
 }
 function route(){
+  if(VA.switching)return;
   if(VA.auth&&!VA.auth.session()){if(!document.getElementById('auth'))VA.auth.show();return}
   if(!S)return;
   const raw=location.hash.replace(/^#\/?/,'')||'fleet';const [path,qs]=raw.split('?');
@@ -246,9 +247,10 @@ function route(){
   const t0=performance.now();
   const res=VA.views[view](v,parts.slice(1));
   VA.lastRender={view,ms:performance.now()-t0};
+  if(VA.afterRoute)VA.afterRoute(v,view);
   const pf=document.createElement('div');pf.className='perf';pf.id='perf';pf.textContent=`⚡ rendered in ${VA.lastRender.ms.toFixed(1)} ms · ${S.aircraft.length} aircraft · ${S.items.length.toLocaleString()} due items${VA.logCount!=null?' · '+VA.logCount.toLocaleString()+' logbook entries':''}`;v.appendChild(pf);
   $('#pageTitle').textContent=res&&res.title||'';
-  document.title=(res&&res.title?res.title+' · ':'')+'Valkyr Aero';
+  document.title=(res&&res.title?res.title+' · ':'')+'Valkyr360 by Hill Systems';
 }
 VA.route=route;
 VA.go=h=>{if(location.hash==='#/'+h)route();else location.hash='#/'+h};
@@ -265,8 +267,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function boot(){
   const t0=performance.now();
   const step=x=>{window.__bootStep=x};step('init');
-  try{await DAL.init();step('state');S=await DAL.getState();step('seed?');if(!S||S.v!==2)await VA.seedStandard()}
-  catch(e){console.error(e);$('#view').innerHTML='<div class="empty">This browser blocked IndexedDB storage. Try a normal (non-private) window.</div>';return}
+  const scope=VA.auth?VA.auth.scope():'valkyr-aero';VA.scopeLoaded=scope;
+  try{await DAL.init(scope);step('state');S=await DAL.getState();step('seed?');
+    if(!S||S.v!==2){if(scope!=='valkyr-aero'&&VA.seedAccount)await VA.seedAccount();else await VA.seedStandard()}}
+  catch(e){if(e&&e.reloading)return;console.error(e);$('#view').innerHTML='<div class="empty">This browser blocked IndexedDB storage. Try a normal (non-private) window.</div>';return}
   VA.dirty();
   {const ses=VA.auth&&VA.auth.session();if(ses&&ses.role)S.role=ses.role}
   step('count');VA.logCount=await DAL.countLogs();
@@ -275,5 +279,6 @@ async function boot(){
   VA.bootMs=performance.now()-t0;
   document.body.classList.remove('booting');
   VA.syncLargeBtn&&VA.syncLargeBtn();
+  VA.syncSide&&VA.syncSide();
   route();VA.ready=true;
 }

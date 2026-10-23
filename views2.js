@@ -1,4 +1,4 @@
-/* Valkyr Aero — schedule, log flight, squawks, costs, plans + forms */
+/* Valkyr360 — schedule, log flight, squawks, costs, plans + forms */
 (function(){
 const {$,$$,esc,h1,money,fmtDate,fmtShort,todayISO,addDays,uid,I}=VA;
 const S=()=>VA.state();const V=VA.views;const role=()=>S().role;
@@ -10,7 +10,7 @@ const pilotOpts=sel=>S().people.map(p=>`<option value="${p.id}" ${p.id===sel?'se
 function weekStart(off){const d=VA.parse(todayISO());const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow+off*7);return VA.isoOf(d)}
 V.schedule=function(el){
   const s=S(),ws=weekStart(s.weekOffset||0),days=[...Array(7)].map((_,i)=>addDays(ws,i)),t=todayISO();
-  const wkAc=[...new Set(s.bookings.filter(b=>days.includes(b.date)).map(b=>b.ac))];const stripAc=(s.aircraft.length<=6?s.aircraft:s.aircraft.filter(a=>wkAc.includes(a.id))).slice(0,6);
+  const wkAc=[...new Set(s.bookings.filter(b=>days.includes(b.date)).map(b=>b.ac))];const stripAc=s.aircraft.length<=12?s.aircraft:s.aircraft.filter(a=>wkAc.includes(a.id));
   const strip=stripAc.map(a=>{const st=VA.status(a.id);return `<div class="s"><span class="dot ${st.code==='ok'?'':st.code}"></span><span class="tl">${esc(a.tail)}</span><span class="muted">${esc(a.short)}</span><span class="spacer"></span><span class="pill ${st.code}">${st.label}</span></div>`}).join('');
   el.innerHTML=`<div class="row" style="margin-bottom:14px"><div class="row" style="gap:6px"><button class="btn sm" data-wk="-1" aria-label="Previous week">‹</button><button class="btn sm" data-wk="0">This week</button><button class="btn sm" data-wk="1" aria-label="Next week">›</button></div>
     <b style="font-size:15px">${fmtShort(days[0])} – ${fmtDate(days[6])}</b><span class="spacer"></span>
@@ -304,7 +304,7 @@ V.plans=function(el){
        <button class="btn sm" data-dec="${t.id}" aria-label="Remove ${t.name}">−</button><b class="mono" style="width:28px;text-align:center" data-n="${t.id}">${calc[t.id]}</b><button class="btn sm" data-inc="${t.id}" aria-label="Add ${t.name}">+</button></div>`).join('')}</div>
      <div class="row" style="margin-top:14px"><span class="muted" id="calcCount"></span><span class="spacer"></span><div style="text-align:right"><span class="big" id="calcMo"></span><span class="muted">/mo</span><div class="small muted mono" id="calcYr"></div></div></div></div>
    <div class="card"><h2>vs. typical competitor stacks · 3 aircraft / yr</h2>
-     <div class="cost-row"><div class="lbl"><span>Valkyr Aero · 3 aircraft (2 turboprops + 1 single)</span><b class="ok-t">${money(ex3)}</b></div><div class="stack" style="width:${ex3/scale*100}%"><span class="s-fuel" style="width:100%"></span></div></div>
+     <div class="cost-row"><div class="lbl"><span>Valkyr360 · 3 aircraft (2 turboprops + 1 single)</span><b class="ok-t">${money(ex3)}</b></div><div class="stack" style="width:${ex3/scale*100}%"><span class="s-fuel" style="width:100%"></span></div></div>
      <div class="cost-row" style="margin-top:12px"><div class="lbl"><span>Maintenance tracker + scheduling tool</span><b>${money(lo)}–${money(hi)}</b></div>
        <div class="stack" style="width:${hi/scale*100}%;background:transparent"><span style="width:${lo/hi*100}%;background:var(--dim)"></span><span style="width:${(1-lo/hi)*100}%;background:repeating-linear-gradient(135deg,var(--line2) 0 5px,var(--line) 5px 10px)"></span></div></div>
      <p class="small dim" style="margin:12px 0 0">Range from the competitive teardown (separate maintenance-tracking and scheduling subscriptions, often plus setup fees). Save up to ${money(hi-ex3)} a year, with nothing paid for mechanic seats.</p></div>
@@ -314,7 +314,7 @@ V.plans=function(el){
   const upd=()=>{const mo=TIERS.reduce((t,x)=>t+calc[x.id]*x.price,0),n=Object.values(calc).reduce((a,b)=>a+b,0);
     TIERS.forEach(t=>$(`[data-n="${t.id}"]`,el).textContent=calc[t.id]);
     $('#calcMo',el).textContent='$'+mo.toLocaleString();$('#calcYr',el).textContent='$'+(mo*12).toLocaleString()+'/yr';$('#calcCount',el).textContent=n+' aircraft'};
-  $$('[data-inc]',el).forEach(b=>b.onclick=()=>{if(calc[b.dataset.inc]<99)calc[b.dataset.inc]++;upd()});
+  $$('[data-inc]',el).forEach(b=>b.onclick=()=>{calc[b.dataset.inc]++;upd()});
   $$('[data-dec]',el).forEach(b=>b.onclick=()=>{if(calc[b.dataset.dec]>0)calc[b.dataset.dec]--;upd()});
   $('#calcReset',el).onclick=()=>{TIERS.forEach(t=>calc[t.id]=fleet.filter(a=>a.cls===t.id).length);upd()};
   upd();

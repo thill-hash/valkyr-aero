@@ -70,5 +70,5 @@ const card={
  'data_log/log_261022_080000_KM02.csv':strToU8(garmin(dayA.concat(dayB),META)),
  'data_log/log_261022_080002_MFD.csv':strToU8(garmin(dayA,META)),
  'ldr_sys/system.bin':new Uint8Array([1,2,3,4]),'Garmin/GarminDevice.xml':strToU8('<Device>demo</Device>'),
- 'navdata/nav_2610.bin':new Uint8Array(64),'charts/KM02_apt.tif':new Uint8Array(32),'terrain/terrain_na.img':new Uint8Array(32),'README-DEMO.txt':strToU8('DEMO SD card for Valkyr Aero. Synthetic data.')};
+ 'navdata/nav_2610.bin':new Uint8Array(64),'charts/KM02_apt.tif':new Uint8Array(32),'terrain/terrain_na.img':new Uint8Array(32),'README-DEMO.txt':strToU8('DEMO SD card for Valkyr360. Synthetic data.')};
 fs.writeFileSync(path.join(OUT,'demo-sd-card.zip'),zipSync(card));console.log('wrote demo-sd-card.zip');

@@ -1,4 +1,4 @@
-# Valkyr Aero — Architecture (prototype → production)
+# Valkyr360 — Architecture (prototype → production)
 
 > Status: **clickable prototype**. Everything in the app is DEMO data. This document describes how the prototype is built today and the
 > production design it is meant to grow into. Items marked **UNVERIFIED** have not been confirmed against a real file or vendor spec.
@@ -382,8 +382,17 @@ type BillingEvent =
   - **(a)** A merchant of record collects and remits everything and is the seller on the receipt.
   - **(b)** A gateway plus a tax engine (e.g. Avalara, TaxJar, Anrok, Numeral), computed from the billing address, with exemption certificates stored on `billing_customers`. Register where economic nexus is reached.
   - Tax is a separate invoice line.
-- **Candidate providers** (any one plugs in behind the adapter):
+- **Prototype fleet ↔ billing link.**
+- Each account has its own IndexedDB database (`valkyr-aero-<accountId>`). The demo uses `valkyr-aero`.
+- Signing into a different scope reloads the page into that database.
+- A new account's database starts with exactly the aircraft added at sign-up, filled in from the FAA lookup, plus an onboarding card.
+- Billing lines are derived from the active fleet. There is one function each for adding (`VA.addAircraft`) and archiving (`VA.archiveAircraft`), used by sign-up, Fleet › Add aircraft, Billing and the aircraft page.
+- Archiving moves the aircraft and its due items, squawks, bookings and documents to `S.archived`, so history rows still resolve. It records a proration line and refuses to remove the last aircraft.
+- There is no cap on aircraft per account.
+- Cancel subscription sets `cancel_at_period_end`. After the period ends, the app is read-only (writes blocked; navigation, filters and export still work), and "Export data" downloads JSON of all records. Production mirrors this with `subscriptions.status` and API-side write guards.
+
+**Candidate providers** (any one plugs in behind the adapter):
   - **Merchant of record (handles global sales tax/VAT, fastest to launch):** Paddle, Lemon Squeezy.
   - **Gateways (we own the subscription logic and tax engine):** Braintree, Square, Authorize.net, Helcim.
   - **Subscription layers over a gateway (proration, dunning and invoicing out of the box):** Chargebee, Recurly.
-  - Recommendation for v1: a merchant of record, because tax and fewer moving parts matter more for 1–5-aircraft customers. Keep the adapter so a later move to a gateway plus tax engine doesn't reach the domain model.
+  - Recommendation for v1: a merchant of record, because tax and fewer moving parts matter more for owner-operators and flight departments. Keep the adapter so a later move to a gateway plus tax engine doesn't reach the domain model.

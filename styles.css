@@ -23,7 +23,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:10px;color:var(--text);padding:4px 8px}
 .logo{width:34px;height:28px;filter:drop-shadow(0 0 10px rgba(0,225,255,.35))}
 .wordmark{font-weight:800;letter-spacing:.18em;font-size:15px}
-.wordmark b{font-weight:300;color:var(--accent);margin-left:4px;letter-spacing:.24em}
+.wordmark b{font-weight:800;color:var(--accent);margin-left:0;letter-spacing:.18em}
 .nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
 .nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:var(--muted);font-weight:500;transition:background .12s,color .12s}
 .nav a svg{width:18px;height:18px;flex:none}
@@ -453,3 +453,50 @@ body.signed-out #app{display:none}
 .btn.ghost{background:transparent;border-color:var(--line2)}
 .btn.ghost:hover{background:var(--panel2)}
 .bill-add input::placeholder{text-transform:none}
+/* minimal sign-in (single card) */
+.auth-wrap,.auth-wrap:has(.auth-card.wide){display:grid;grid-template-columns:1fr;place-items:center;min-height:100%;padding:32px 16px}
+.auth-card{width:100%;max-width:400px;padding:32px 28px;border:1px solid var(--line);border-radius:16px;background:rgba(13,17,23,.85);justify-content:flex-start;gap:14px;margin:0}
+.auth-card.wide{max-width:680px}
+.auth-brand,.auth-brand-m{display:flex;align-items:center;gap:10px;margin:0}
+.auth-brand .logo{width:34px;height:28px}
+.auth-brand .wordmark{font-size:17px}
+.by-hs{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin:-8px 0 8px 44px}
+.by-hs img{height:16px;width:auto;opacity:.85}
+.auth-head{font-size:22px;line-height:1.25;margin:6px 0 4px}
+.auth-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.auth-row .link-btn{font-size:12px}
+.auth-demo{border-color:rgba(0,225,255,.55);color:var(--accent);background:transparent}
+.auth-demo:hover{background:var(--accent-soft)}
+.auth-alt{margin:0}
+.auth-note{margin:6px 0 0;font-size:11px;color:var(--dim);text-align:center;display:block}
+@media (max-width:900px){.auth-card{padding:24px 18px;background:rgba(13,17,23,.85);max-width:400px}.auth-card.wide{max-width:680px}}
+@media (max-width:480px){.auth-wrap{padding:0;place-items:start stretch}.auth-card,.auth-card.wide{border:0;border-radius:0;min-height:100vh;background:none}}
+/* Hill Systems marks */
+.hs-foot{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:10.5px;color:var(--dim)}
+.hs-foot img{border-radius:3px}
+.print-brand,.print-copy{display:none}
+.inv-brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.inv-brand img{height:22px;width:auto}
+.inv-copy{font-size:11px;color:var(--dim);margin-top:12px}
+.ro-banner{display:flex;align-items:center;gap:10px;border:1px solid rgba(255,77,94,.45);background:var(--bad-soft);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:13px}
+.ro-banner.warn{border-color:rgba(255,176,32,.45);background:var(--warn-soft)}
+.danger-t{color:var(--bad)!important}
+.onboard{margin-bottom:18px}
+.onboard ol{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.onboard li a{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--text);text-decoration:none}
+.onboard li a:hover{border-color:rgba(0,225,255,.5)}
+.onboard li .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);font-size:12px;font-weight:700;flex:none}
+.onboard li.done .n{background:var(--ok-soft);color:var(--ok)}
+.onboard li.done a{color:var(--muted)}
+@media print{
+  .print-brand{display:flex!important;align-items:center;justify-content:space-between;padding:0 0 10px;border-bottom:1px solid #ccc;margin-bottom:10px;color:#222;font-size:12px}
+  .print-copy{display:block!important;text-align:center;font-size:10px;color:#444;margin-top:16px}
+  .modal .inv-brand img{content:url(brand/hill-systems-logo-print.png)}
+}
+@media print{body.print-invoice #app,body.print-invoice #toasts,body.print-invoice .print-copy{display:none!important}
+  body.print-invoice #modalRoot .modal-bg{position:static;background:none;backdrop-filter:none}
+  body.print-invoice .modal{box-shadow:none;border:0;background:#fff;color:#111;max-width:none}
+  body.print-invoice .modal header .x,body.print-invoice .modal footer{display:none}}
+.auth-head{font-size:20px}
+.by-hs img{height:18px}
+.auth-head{text-wrap:balance}

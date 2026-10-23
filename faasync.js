@@ -1,4 +1,4 @@
-/* Valkyr Aero — FAA registry versioning, incremental updates, change review, unmapped-type queue and AD applicability.
+/* Valkyr360 — FAA registry versioning, incremental updates, change review, unmapped-type queue and AD applicability.
    Prototype: updates arrive as a delta file (format "valkyr-faa-delta/1", produced server-side in production) or as a
    ReleasableAircraft.zip the user downloaded; a live in-browser fetch is attempted but registry.faa.gov does not allow
    cross-origin downloads, so production syncs server-side nightly. User-entered aircraft fields are never overwritten. */
